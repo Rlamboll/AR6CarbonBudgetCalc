@@ -89,19 +89,50 @@ def test_calculate_earth_syst():
 
 
 def test_quantile_regression_find_relationships_colinear():
-    xy_df = pd.DataFrame({"x": [0.1, 0.2, 0.3], "y": [0.0, 0.1, 0.2]})
+    xy_df = pd.DataFrame(
+        {"x": np.arange(0.1, 0.5, 0.01), "y": np.arange(0.0, 0.4, 0.01)}
+    )
     quantiles_to_plot = [0.9, 0.5, 0.1]
-    calc_value = calc.quantile_regression_find_relationships(xy_df, quantiles_to_plot)
+    calc_value = calc.quantile_regression_find_relationships(
+        xy_df, quantiles_to_plot
+    )
     # The trend line is y = x - 0.1
-    assert all(
-        abs(x) < 1e-14 for x in calc_value.iloc[0].values - np.array([0.9, -0.1, 1])
+    assert np.allclose(
+        calc_value.iloc[0].values, np.array([0.9, -0.1, 1])
     )
     assert all(
-        abs(x) < 1e-14 for x in calc_value.iloc[1].values - np.array([0.5, -0.1, 1])
+        abs(x) < 1e-8 for x in
+        calc_value.iloc[1].values - np.array([0.5, -0.1, 1])
     )
     assert all(
-        abs(x) < 1e-14 for x in calc_value.iloc[2].values - np.array([0.1, -0.1, 1])
+        abs(x) < 1e-8 for x in
+        calc_value.iloc[2].values - np.array([0.1, -0.1, 1])
     )
+
+def test_quantile_regression_nonlinear_with_colinear_data():
+    xy_df = pd.DataFrame(
+        {"x": np.arange(0.5, 0.1, -0.01), "y": np.arange(0.4, 0.0, -0.01)}
+    )
+    quantiles_to_plot = [0.9, 0.5, 0.1]
+    calc_value = calc.quantile_regression_find_relationships_nonlin(
+        xy_df, quantiles_to_plot
+    )
+    assert np.allclose(calc_value["x"], calc_value[0.5] + 0.1)
+    assert np.all(calc_value[0.5] > calc_value[0.1])
+    assert np.all(calc_value[0.9] > calc_value[0.5])
+
+
+def test_quantile_regression_nonlinear_with_colinear_data_reverse():
+    xy_df = pd.DataFrame(
+        {"x": np.arange(0.5, 0.1, -0.01), "y": np.arange(0.0, 0.4, 0.01)}
+    )
+    quantiles_to_plot = [0.9, 0.5, 0.1]
+    calc_value = calc.quantile_regression_find_relationships_nonlin(
+        xy_df, quantiles_to_plot
+    )
+    assert np.allclose(calc_value["x"], 0.5-calc_value[0.5])
+    assert np.all(calc_value[0.5] > calc_value[0.1])
+    assert np.all(calc_value[0.9] > calc_value[0.5])
 
 
 def test_quantile_regression_find_relationships_scattered():
@@ -109,12 +140,10 @@ def test_quantile_regression_find_relationships_scattered():
         {"x": [0.1, 0.2, 0.3, 0.1, 0.2, 0.3], "y": [0.0, 0.1, 0.2, 0.2, 0.3, 0.4]}
     )
     quantiles_to_plot = [0.9, 0.5, 0.1]
-    calc_value = calc.quantile_regression_find_relationships(xy_df, quantiles_to_plot)
+    calc_value = calc.quantile_regression_find_relationships(
+        xy_df, quantiles_to_plot
+    )
     # The trend line is y = x - 0.1
-    assert all(
-        abs(x) < 1e-6 for x in calc_value.iloc[0].values - np.array([0.9, 0.1, 1])
-    )
-    assert all(abs(x) < 1e-6 for x in calc_value.iloc[1].values - np.array([0.5, 0, 1]))
-    assert all(
-        abs(x) < 1e-6 for x in calc_value.iloc[2].values - np.array([0.1, -0.1, 1])
-    )
+    assert np.allclose(calc_value.iloc[0].values, np.array([0.9, 0.1, 1]))
+    assert np.allclose(calc_value.iloc[1].values, np.array([0.5, 0, 1]))
+    assert np.allclose(calc_value.iloc[2].values, np.array([0.1, -0.1, 1]))

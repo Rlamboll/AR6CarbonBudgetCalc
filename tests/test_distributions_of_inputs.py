@@ -78,7 +78,8 @@ def test_establish_median_temp_dep():
     quantiles_to_plot = [0.5]
     temp = np.array([2, 3])
     relations = calc.quantile_regression_find_relationships(xy_df, quantiles_to_plot)
-    returned = distributions.establish_median_temp_dep(relations, temp, quantiles_to_plot)
+    returned = distributions.establish_median_temp_dep_linear(relations, temp,
+                                                              quantiles_to_plot)
     # The above data has a 1:1 relationship, so we expect to receive the temp back again
     assert all(abs(x - y) < 1e-14 for x, y in zip(returned, temp))
 
@@ -93,11 +94,16 @@ def test_establish_median_temp_dep_not_skewed():
         }
     )
     quantiles_to_plot = [0.5]
-    temp = np.array([2, 3])
+    temp = np.array([0.12, 0.26])
     relations = calc.quantile_regression_find_relationships(xy_df, quantiles_to_plot)
-    returned = distributions.establish_median_temp_dep(relations, temp, 0.5)
+    returned = distributions.establish_median_temp_dep_linear(relations, temp, 0.5)
     # The above data has a 1:1 relationship, so we expect to receive the temp back again
-    assert all(abs(x - y) < 1e-10 for x, y in zip(returned, temp))
+    assert np.allclose(returned, temp)
+    # Also should work nonlinearly, although there is a slight error on the uppermost point
+    nonlin_rel = calc.quantile_regression_find_relationships_nonlin(xy_df, quantiles_to_plot, smoothing=3)
+    nonlin_returned = distributions.establish_median_temp_dep_nonlinear(nonlin_rel, temp, quantiles_to_plot)
+    assert np.allclose(nonlin_returned[0.12], temp[0])
+    assert np.allclose(nonlin_returned[0.26], temp[1], atol=0.03)
 
 
 

@@ -62,12 +62,15 @@ def tcre_distribution(low, high, likelihood, n_return, tcre_dist):
     )
 
 
-def establish_median_temp_dep(models, temps, quantile):
+def establish_median_temp_dep_linear(models, temps, quantile):
     """
     Calculates the median line of fit
     :param models: pd.Database.
         Must include a column marked 'quantile' with a row 0.5
     :param temps: np.array.
+        The temperatures to use
+    :param quantile
+        The quantile desired (0.5 usually)
 
     :return: pd.Series
     """
@@ -75,6 +78,28 @@ def establish_median_temp_dep(models, temps, quantile):
         index=temps,
         data=models["b"].loc[models["quantile"] == quantile].iloc[0] * temps
         + models["a"].loc[models["quantile"] == quantile].iloc[0],
+    )
+
+def establish_median_temp_dep_nonlinear(models, temps, quantile):
+    """
+    Calculates the median line of fit
+    :param models: pd.Database.
+        Must include a column with the name of the quantile
+    :param temps: np.array.
+        The temperatures to use
+    :param quantile
+        The quantile desired (0.5 usually)
+
+    :return: pd.Series
+    """
+    return pd.Series(
+        index=temps,
+        data=scipy.interpolate.interp1d(
+            models["x"],
+            models[quantile].squeeze(),
+            bounds_error=False,
+            fill_value=np.nan,
+        )(temps)
     )
 
 

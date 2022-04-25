@@ -89,8 +89,11 @@ use_as_median_non_co2 = True
 if use_as_median_non_co2 != True:
     output_file = output_file + "_nonco2scenfrac" + str(use_as_median_non_co2)
 output_all_trends = output_folder + "TrendLinesWithMagicc_permaf_{}.pdf"
+# should we assume the relationship between total warming and non-CO2 warming is linear?
+linear_nonco2 = True
 
-#       Information for reading in files used to calculate non-CO2 component:
+
+###       Information for reading in files used to calculate non-CO2 component:
 
 #       MAGICC files
 # Should we use a variant means of measuring the non-CO2 warming?
@@ -238,12 +241,21 @@ for use_permafrost in List_use_permafrost:
             y = all_non_co2_db[magicc_non_co2_col].astype(np.float64)
             xy_df = pd.DataFrame({"x": x, "y": y})
             xy_df = xy_df.reset_index(drop=True)
-            quantile_reg_trends = budget_func.quantile_regression_find_relationships(
-                xy_df, quantiles_to_plot
-            )
-            non_co2_dTs = distributions.establish_median_temp_dep(
-                quantile_reg_trends, dT_targets - historical_dT, use_as_median_non_co2
-            )
+            if linear_nonco2:
+                quantile_reg_trends = budget_func.quantile_regression_find_relationships(
+                    xy_df, quantiles_to_plot
+                )
+                non_co2_dTs = distributions.establish_median_temp_dep_linear(
+                    quantile_reg_trends, dT_targets - historical_dT,
+                    use_as_median_non_co2)
+            else:
+                quantile_reg_trends_fns = budget_func.quantile_regression_find_relationships_nonlin(
+                    xy_df, quantiles_to_plot
+                )
+                non_co2_dTs = distributions.establish_median_temp_dep_nonlinear(
+                    quantiles_to_plot, dT_targets - historical_dT, use_as_median_non_co2
+                )
+
         else:
             # If not quantile regression, we use the least squares fit to the non-CO2 data
             non_co2_dTs = distributions.establish_least_sq_temp_dependence(

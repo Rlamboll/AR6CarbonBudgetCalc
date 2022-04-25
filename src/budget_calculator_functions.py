@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
+from statsmodels.regression.rolling import RollingOLS
+import statsmodels.api as sm
 
 def calculate_budget(
     dT_target, zec, historical_dT, non_co2_dT, tcre, earth_feedback_co2
@@ -127,3 +129,14 @@ def quantile_regression_find_relationships(xy_df, quantiles_to_plot):
 
     modelsA = [fit_model(x, quant_reg_model, "x") for x in quantiles_to_plot]
     return pd.DataFrame(modelsA, columns=["quantile", "a", "b"])
+
+
+def quantile_regression_find_relationships_nonlin(xy_df, quantiles_to_plot, smoothing=5):
+    xysort = xy_df.sort_values("x")
+    reg = {}
+    reg["x"] = xysort["x"].rolling(smoothing, center=True).quantile(0.5, interpolation="linear")
+    for q in quantiles_to_plot:
+        reg[q] = xysort["y"].rolling(smoothing, center=True).quantile(q, interpolation="linear")
+    candidate = pd.DataFrame(reg).dropna()
+    # In the event of repeated indexes we take the median of the appropriate
+    return candidate.groupby("x").median().reset_index()
