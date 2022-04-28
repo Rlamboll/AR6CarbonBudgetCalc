@@ -15,7 +15,7 @@ import time
 dT_targets = np.arange(1.1, 2.6, 0.1)
 # The number of loops performed for each temperature. Runs in seconds for ~ 10^6, higher
 # reduces statistical error but takes longer
-n_loops = 10000000
+n_loops = 1000000
 # The change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
 zec = 0.0
@@ -73,7 +73,7 @@ output_file = (
     output_folder + "budget_{}_magicc_{}_fair_{}_esf_{}pm{}_likeli_{}_nonCO2pc{}_GtCO2_permaf_{}_hdT_{}"
 )
 # Output location for figure of peak warming vs non-CO2 warming. More appended later
-output_figure_file = output_folder + "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{}_nonCO2pc{}"
+output_figure_file = output_folder + "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{}_nonCO2pc{}_nonlin_{}"
 # Quantile fit lines to plot on the temperatures graph.
 # If use_as_median_non_co2 evaluates as True, this must include that quantile (by
 # default 0.5)
@@ -88,10 +88,18 @@ use_as_median_non_co2 = True
 # use_median_non_co2 evaluates as True.
 if use_as_median_non_co2 != True:
     output_file = output_file + "_nonco2scenfrac" + str(use_as_median_non_co2)
-output_all_trends = output_folder + "TrendLinesWithMagicc_permaf_{}.pdf"
-# should we assume the relationship between total warming and non-CO2 warming is linear?
-linear_nonco2 = True
 
+# should we assume the relationship between total warming and non-CO2 warming is linear?
+# Default (None) yes; alternatively: "rollingQuantile" means that rolling quantiles are
+# taken point-by-point for scenarios across non-CO2 and total warming space; "QRW"
+# resulting in the Quantile Rolling Windows approach, which also takes
+# rolling quantiles but does so with weights according to the proximity to the
+# evaluation point (see Silicone documentation for more details). "all" uses the linear
+# trend in the calculation but plots all possible trends.
+nonlinear_nonco2 = "all"
+if nonlinear_nonco2:
+    output_file = output_file + "NonlinearNonCO2"
+output_all_trends = output_folder + "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 
 ###       Information for reading in files used to calculate non-CO2 component:
 
@@ -241,19 +249,36 @@ for use_permafrost in List_use_permafrost:
             y = all_non_co2_db[magicc_non_co2_col].astype(np.float64)
             xy_df = pd.DataFrame({"x": x, "y": y})
             xy_df = xy_df.reset_index(drop=True)
-            if linear_nonco2:
+            if (not nonlinear_nonco2) | (nonlinear_nonco2 == "all"):
                 quantile_reg_trends = budget_func.quantile_regression_find_relationships(
                     xy_df, quantiles_to_plot
                 )
                 non_co2_dTs = distributions.establish_median_temp_dep_linear(
                     quantile_reg_trends, dT_targets - historical_dT,
                     use_as_median_non_co2)
-            else:
-                quantile_reg_trends_fns = budget_func.quantile_regression_find_relationships_nonlin(
-                    xy_df, quantiles_to_plot
+            elif nonlinear_nonco2 == "rollingQuantiles":
+                quantile_reg_trends_nonlin = budget_func.quantile_regression_find_relationships_nonlin(
+                    xy_df, quantiles_to_plot, smoothing=20
                 )
                 non_co2_dTs = distributions.establish_median_temp_dep_nonlinear(
-                    quantiles_to_plot, dT_targets - historical_dT, use_as_median_non_co2
+                    quantile_reg_trends_nonlin, dT_targets - historical_dT, use_as_median_non_co2
+                )
+            elif nonlinear_nonco2 == "QRW":
+                quantile_reg_trends_nonlin = budget_func.quantile_regression_quantile_rolling_windows(
+                    xy_df, quantiles_to_plot,
+                )
+                non_co2_dTs = distributions.establish_median_temp_dep_nonlinear(
+                    quantile_reg_trends_nonlin, dT_targets - historical_dT,
+                    use_as_median_non_co2
+                )
+            else:
+                raise ValueError(f"Bad input for nonlinear_nonco2, {nonlinear_nonco2}")
+            if nonlinear_nonco2 == "all":
+                quantile_reg_trends_nonlin = budget_func.quantile_regression_find_relationships_nonlin(
+                    xy_df, quantiles_to_plot, smoothing=20
+                )
+                quantile_reg_trends_nonlin_qrw = budget_func.quantile_regression_quantile_rolling_windows(
+                    xy_df, quantiles_to_plot,
                 )
 
         else:
@@ -400,19 +425,36 @@ for use_permafrost in List_use_permafrost:
         else:
             minT = temp_plot_limits[0]
             maxT = temp_plot_limits[1]
-            for i in range(len(quantile_reg_trends)):
-                plt.plot(
-                    (minT, maxT),
-                    (
-                        quantile_reg_trends["b"][i] * minT + quantile_reg_trends["a"][i],
-                        quantile_reg_trends["b"][i] * maxT + quantile_reg_trends["a"][i],
-                    ),
-                    ls=line_dotting[i],
-                    color="black",
-                )
+            if (not nonlinear_nonco2) | (nonlinear_nonco2 == "all"):
+                for i in range(len(quantile_reg_trends)):
+                    plt.plot(
+                        (minT, maxT),
+                        (
+                            quantile_reg_trends["b"][i] * minT + quantile_reg_trends["a"][i],
+                            quantile_reg_trends["b"][i] * maxT + quantile_reg_trends["a"][i],
+                        ),
+                        ls=line_dotting[i],
+                        color="black",
+                    )
+            if nonlinear_nonco2:
+                for i, q in enumerate(quantile_reg_trends_nonlin.columns[1:]):
+                    plt.plot(
+                        quantile_reg_trends_nonlin["x"],
+                        quantile_reg_trends_nonlin[q],
+                        ls=line_dotting[i],
+                        color="blue",
+                    )
+            if nonlinear_nonco2 == "all":
+                for i, q in enumerate(quantile_reg_trends_nonlin_qrw.columns[1:]):
+                    plt.plot(
+                        quantile_reg_trends_nonlin_qrw["x"],
+                        quantile_reg_trends_nonlin_qrw[q],
+                        ls=line_dotting[i],
+                        color="red",
+                    )
         fig.savefig(
             output_figure_file.format(
-                include_magicc, include_fair, use_permafrost, nonco2_percentile
+                include_magicc, include_fair, use_permafrost, nonco2_percentile,nonlinear_nonco2
             ),
             bbox_inches="tight"
         )
@@ -432,6 +474,6 @@ for use_permafrost in List_use_permafrost:
         plt.legend(["MAGICC and FaIR", "MAGICC only", "FaIR only"])
         plt.ylabel(magicc_non_co2_col)
         plt.xlabel(magicc_temp_col)
-        fig.savefig(output_all_trends.format(use_permafrost))
+        fig.savefig(output_all_trends.format(use_permafrost, nonlinear_nonco2))
 print("Time taken: ", time.time() - t0)
 print("The analysis has completed.")

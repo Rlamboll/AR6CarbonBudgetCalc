@@ -84,7 +84,7 @@ def establish_median_temp_dep_nonlinear(models, temps, quantile):
     """
     Calculates the median line of fit
     :param models: pd.Database.
-        Must include a column with the name of the quantile
+        Must include a column with the name of the quantile and sorted ascending xs
     :param temps: np.array.
         The temperatures to use
     :param quantile
@@ -98,7 +98,7 @@ def establish_median_temp_dep_nonlinear(models, temps, quantile):
             models["x"],
             models[quantile].squeeze(),
             bounds_error=False,
-            fill_value=np.nan,
+            fill_value=(models[quantile].values[0], models[quantile].values[-1]),
         )(temps)
     )
 

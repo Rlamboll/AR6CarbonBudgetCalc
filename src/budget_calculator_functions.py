@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
-from statsmodels.regression.rolling import RollingOLS
-import statsmodels.api as sm
+from silicone.stats import rolling_window_find_quantiles
 
 def calculate_budget(
     dT_target, zec, historical_dT, non_co2_dT, tcre, earth_feedback_co2
@@ -140,3 +139,10 @@ def quantile_regression_find_relationships_nonlin(xy_df, quantiles_to_plot, smoo
     candidate = pd.DataFrame(reg).dropna()
     # In the event of repeated indexes we take the median of the appropriate
     return candidate.groupby("x").median().reset_index()
+
+def quantile_regression_quantile_rolling_windows(xy_df, quantiles_to_plot, nwindows=10):
+    rollingwindows = rolling_window_find_quantiles(
+        xy_df["x"], xy_df["y"], quantiles_to_plot, nwindows=nwindows
+    )
+    rollingwindows = rollingwindows.reset_index()
+    return rollingwindows.rename(columns={"index": "x"})
