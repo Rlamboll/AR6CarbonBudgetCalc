@@ -90,15 +90,15 @@ if use_as_median_non_co2 != True:
     output_file = output_file + "_nonco2scenfrac" + str(use_as_median_non_co2)
 
 # should we assume the relationship between total warming and non-CO2 warming is linear?
-# Default (None) yes; alternatively: "rollingQuantile" means that rolling quantiles are
+# Default (None) yes; alternatively: "rollingQuantiles" means that rolling quantiles are
 # taken point-by-point for scenarios across non-CO2 and total warming space; "QRW"
 # resulting in the Quantile Rolling Windows approach, which also takes
 # rolling quantiles but does so with weights according to the proximity to the
 # evaluation point (see Silicone documentation for more details). "all" uses the linear
-# trend in the calculation but plots all possible trends.
+# trend in the calculation but plots QRW and rolling quantiles too.
 nonlinear_nonco2 = "all"
 if nonlinear_nonco2:
-    output_file = output_file + "NonlinearNonCO2"
+    output_file = output_file + f"NonlinNonCO2_{nonlinear_nonco2}"
 output_all_trends = output_folder + "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 
 ###       Information for reading in files used to calculate non-CO2 component:
@@ -442,7 +442,7 @@ for use_permafrost in List_use_permafrost:
                         quantile_reg_trends_nonlin["x"],
                         quantile_reg_trends_nonlin[q],
                         ls=line_dotting[i],
-                        color="blue",
+                        color="cyan",
                     )
             if nonlinear_nonco2 == "all":
                 for i, q in enumerate(quantile_reg_trends_nonlin_qrw.columns[1:]):
@@ -454,7 +454,8 @@ for use_permafrost in List_use_permafrost:
                     )
         fig.savefig(
             output_figure_file.format(
-                include_magicc, include_fair, use_permafrost, nonco2_percentile,nonlinear_nonco2
+                include_magicc, include_fair, use_permafrost,
+                nonco2_percentile, nonlinear_nonco2
             ),
             bbox_inches="tight"
         )
