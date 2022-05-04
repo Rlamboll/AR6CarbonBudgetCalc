@@ -101,10 +101,16 @@ if nonlinear_nonco2:
     output_file = output_file + f"NonlinNonCO2_{nonlinear_nonco2}"
 output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 # Do we want to calculate this non-CO2 component separately for each model in the
-# database?
-for_each_model = True
+# database? Options: False (evaluates the normal carbon budget), True (evaluates for
+# each model with a different first string (up to a space or _), or a specific string,
+# in which case we also filter the scenario for that string.
+for_each_model = False
 if for_each_model:
+    # How many scenarios are required for analysis to be done?
+    min_scenarios = 5
     output_folder = output_folder + "for_each_model/"
+    if type(for_each_model) == str:
+        output_folder = output_folder + for_each_model + "/"
 os.makedirs(output_folder, exist_ok=True)
 
 ###       Information for reading in files used to calculate non-CO2 component:
@@ -119,7 +125,7 @@ os.makedirs(output_folder, exist_ok=True)
 # temperature.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-peak_version = None
+peak_version = "nonCO2AtPeakTot"
 
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
@@ -255,10 +261,15 @@ for use_permafrost in List_use_permafrost:
                     [re.split(" |_", x)[0] == model for x in master_all_non_co2.index.get_level_values("model")],
                     :
                 ]
+                if type(for_each_model) == str:
+                    all_non_co2_db = all_non_co2_db.loc[
+                        [x[:len(for_each_model)] == for_each_model for x in all_non_co2_db.index.get_level_values("scenario")],
+                        :
+                    ]
                 print(f"length of model {model} is {len(all_non_co2_db)}")
                 model = model.replace("/", "_").replace(" ", "_")
                 # We can't reasonably compute values with very few scenarios
-                if all_non_co2_db.shape[0] < 10:
+                if all_non_co2_db.shape[0] < min_scenarios:
                     continue
                 model_size[model] = all_non_co2_db.shape[0]
             else:
@@ -298,8 +309,18 @@ for use_permafrost in List_use_permafrost:
                         quantile_reg_trends_nonlin, dT_targets - historical_dT,
                         use_as_median_non_co2
                     )
+                elif nonlinear_nonco2 == "interp":
+                    # Other quantiles don't make sense with this
+                    quantiles_to_plot = [0.5]
+                    quantile_reg_trends_nonlin = budget_func.quantile_regression_find_relationships_interpolate(xy_df)
+                    non_co2_dTs = distributions.establish_median_temp_dep_nonlinear(
+                        quantile_reg_trends_nonlin, dT_targets - historical_dT,
+                        use_as_median_non_co2
+                    )
+
                 else:
                     raise ValueError(f"Bad input for nonlinear_nonco2, {nonlinear_nonco2}")
+
                 if nonlinear_nonco2 == "all":
                     quantile_reg_trends_nonlin = budget_func.quantile_regression_find_relationships_nonlin(
                         xy_df, quantiles_to_plot, smoothing=20
@@ -509,5 +530,7 @@ for use_permafrost in List_use_permafrost:
                     use_permafrost, nonlinear_nonco2
                 )
             )
+if for_each_model:
+    model_size.to_csv(output_folder + f"num_scenarios_for_model_{for_each_model}.csv")
 print("Time taken: ", time.time() - t0)
 print("The analysis has completed.")

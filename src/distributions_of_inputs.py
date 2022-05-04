@@ -230,7 +230,7 @@ def load_data_from_MAGICC(
             temp = max(non_co2_df.loc[ind])
         elif peak_version == "nonCO2AtPeakTot":
             max_year = np.where(max(tot_df.loc[ind]) == tot_df.loc[ind])[0]
-            temp = non_co2_df.loc[ind].iloc[max_year]
+            temp = non_co2_df.loc[ind].iloc[max_year].values[0]
         elif peak_version == "officialNZ":
             max_year = vetted_scens_nzyears.loc[
                 (vetted_scens_nzyears.model == ind[0]) & (vetted_scens_nzyears.scenario == ind[2])

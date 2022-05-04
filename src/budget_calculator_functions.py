@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
+import scipy.interpolate
 from silicone.stats import rolling_window_find_quantiles
 
 def calculate_budget(
@@ -146,3 +147,9 @@ def quantile_regression_quantile_rolling_windows(xy_df, quantiles_to_plot, nwind
     )
     rollingwindows = rollingwindows.reset_index()
     return rollingwindows.rename(columns={"index": "x"})
+
+def quantile_regression_find_relationships_interpolate(xy_df):
+    # We want to interpolate the values directly so just rearrange them here
+    xysort = xy_df.sort_values("x")
+    xysort = xysort.rename(columns={"y": 0.5})
+    return xysort
