@@ -52,7 +52,7 @@ quantiles_to_report = np.array([0.17, 0.33, 0.5, 0.66, 0.83])
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "ar6wg3"
+runver = "sr15wg1"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -115,7 +115,6 @@ os.makedirs(output_folder, exist_ok=True)
 
 ###       Information for reading in files used to calculate non-CO2 component:
 
-#       MAGICC files
 # Should we use a variant means of measuring the non-CO2 warming?
 # Default = None; ignore scenarios with non-peaking cumulative CO2 emissions, use
 # non-CO2 warming in the year of peak cumulative CO2.
@@ -126,10 +125,10 @@ os.makedirs(output_folder, exist_ok=True)
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
 peak_version = "nonCO2AtPeakTot"
-
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
 
+##  Load data for MAGICC and FaIR
 # We wish to recall one of several MAGICC runs, depending on the situation
 if runver == "ar6wg3":
     # AR6 WG3 version.
@@ -157,6 +156,10 @@ elif runver == "sr15wg1":
     input_folder = "../InputData/MAGICCMeinshausenInputs_sr15scen/"
     vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
+    # The folders for the unscaled anthropological temperature changes files (many nc files)
+    fair_anthro_folder = "../InputData/fair141_sr15/FAIR141anthro_unscaled/"
+    fair_co2_only_folder = "../InputData/fair141_sr15/FAIR141CO2_unscaled/"
+    fair_filestr = "IPCCSR15_"
 else:
     raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
 
@@ -223,14 +226,11 @@ for use_permafrost in List_use_permafrost:
         vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
         sr15_rename=sr15_rename,
     )
-    try:
-        magicc_db = magicc_db_full[magicc_db_full["hits_net_zero"]].drop("hits_net_zero", axis="columns")
-    except KeyError:
-        magicc_db = magicc_db_full.copy()
+    magicc_db = magicc_db_full[np.isfinite(magicc_db_full["hits_net_zero"])]
 
     if magicc_savename:
-        magicc_db.to_csv(magicc_savename.format(use_permafrost))
-        magicc_db_full.to_csv(magicc_savename.format(use_permafrost).replace('.csv', '-all-scenarios.csv'))
+        magicc_db.to_csv(output_folder + magicc_savename.format(use_permafrost))
+        magicc_db_full.to_csv(output_folder + magicc_savename.format(use_permafrost).replace('.csv', '-all-scenarios.csv'))
 
     # We interpret the higher quantiles as meaning a smaller budget
     inverse_quantiles_to_report = 1 - quantiles_to_report
@@ -242,9 +242,38 @@ for use_permafrost in List_use_permafrost:
         # simplified models to evaluate non-CO2 impacts. Currently only MAGICC data is
         # used.
         include_magicc = True
-        include_fair = False
-
-        master_all_non_co2 = magicc_db[[magicc_non_co2_col, magicc_temp_col]]
+        include_fair = True
+        if include_fair:
+            model_col = "model"
+            scenario_col = "scenario"
+            year_col = "peak cumulative emissions co2 (rel. to 2015-2015) year"
+            fair_offset_years = np.arange(2010, 2020, 1)
+            non_co2_dT_fair = distributions.load_data_from_FaIR(
+                fair_anthro_folder,
+                fair_co2_only_folder,
+                magicc_db.reset_index(),
+                model_col,
+                scenario_col,
+                magicc_non_co2_col,
+                magicc_temp_col,
+                fair_offset_years,
+                fair_filestr,
+            )
+            if magicc_savename:
+                non_co2_dT_fair.to_csv(
+                    output_folder + magicc_savename.format(use_permafrost).replace("magicc", "fair")
+                )
+            if include_magicc:
+                non_co2_dT_fair = non_co2_dT_fair.set_index("magicc_ind")
+                master_all_non_co2 = pd.DataFrame(index=non_co2_dT_fair.index, columns=[magicc_non_co2_col, magicc_temp_col])
+                master_all_non_co2[magicc_non_co2_col] = non_co2_dT_fair[
+                    magicc_non_co2_col] + magicc_db.reset_index()[magicc_non_co2_col]
+                master_all_non_co2[magicc_temp_col] = non_co2_dT_fair[
+                     magicc_temp_col] + magicc_db.reset_index()[magicc_temp_col]
+            else:
+                master_all_non_co2 = include_fair[[magicc_non_co2_col, magicc_temp_col]]
+        else:
+            master_all_non_co2 = magicc_db[[magicc_non_co2_col, magicc_temp_col]]
         if for_each_model:
             models = list(dict.fromkeys(
                [re.split(" |_", x)[0] for x in master_all_non_co2.reset_index()["model"]]

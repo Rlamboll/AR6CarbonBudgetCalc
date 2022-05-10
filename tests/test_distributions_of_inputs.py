@@ -5,6 +5,50 @@ import pandas as pd
 import pytest
 
 
+def test_peaking_strats():
+    magicc_file_for_tests_to_use = "magicc_file_for_tests_to_use.csv"
+    magicc_nonco2_temp_variable = "SR15 climate diagnostics|Raw Surface Temperature (GSAT)|Non-CO2|MAGICCv7.5.1|10.0th Percentile"
+    offset_years = np.arange(2010, 2020, 1)
+    magicc_file_for_tests_to_use = "magicc_file_for_tests_to_use_many_scenarios.csv"
+    total_magicc_file = "magicc_file_for_tests_to_use_totaltemp_many_scenarios.csv"
+    vetting_file = "metadata_indicators_test.xlsx"
+    magicc_nonco2_temp_variable = "SR15 climate diagnostics|Raw Surface Temperature (GSAT)|Non-CO2|MAGICCv7.5.1|10.0th Percentile"
+    magicc_tot_temp_variable = "SR15 climate diagnostics|Raw Surface Temperature (GSAT)|MAGICCv7.5.1|10.0th Percentile"
+    emissions_file = "emissions_test_file_many_scen.csv"
+    offset_years = np.arange(2010, 2020, 1)
+    for peak, num_scen in [(None, 2), ("peakNonCO2Warming", 3), ("nonCO2AtPeakTot", 3), ("officialNZ", 2)]:
+        scenarios = distributions.load_data_from_MAGICC(
+            magicc_file_for_tests_to_use,
+            total_magicc_file,
+            emissions_file,
+            magicc_nonco2_temp_variable,
+            magicc_tot_temp_variable,
+            magicc_nonco2_temp_variable,
+            magicc_tot_temp_variable,
+            offset_years,
+            vetted_scen_list_file=vetting_file,
+            vetted_scen_list_file_sheet="meta_Ch3vetted_withclimate",
+            peak_version=peak,
+            permafrost=True,
+        )
+        assert scenarios.shape[0] == 3
+        assert len(scenarios[np.isfinite(scenarios["hits_net_zero"])]) == num_scen
+        if peak != "officialNZ":
+            scenarios = distributions.load_data_from_MAGICC(
+                magicc_file_for_tests_to_use,
+                total_magicc_file,
+                emissions_file,
+                magicc_nonco2_temp_variable,
+                magicc_tot_temp_variable,
+                magicc_nonco2_temp_variable,
+                magicc_tot_temp_variable,
+                offset_years,
+                peak_version=peak,
+                permafrost=True,
+            )
+            assert scenarios.shape[0] == 4
+            assert len(scenarios[np.isfinite(scenarios["hits_net_zero"])]) == num_scen + 1
+
 def test_tcre_bad_limits():
     low = 5.8
     high = 2.5
@@ -208,16 +252,16 @@ def test_scenario_filter():
         permafrost=True,
     )
     # One of the passing years doesn't peak, so one of the 4 scenarios always fails
-    assert len(fewer_scenarios[fewer_scenarios["hits_net_zero"] == True]) == 2
+    assert len(fewer_scenarios[np.isfinite(fewer_scenarios["hits_net_zero"])]) == 2
     assert len(fewer_scenarios) == 3
     assert len(all_scenarios) == 4
-    assert len(all_scenarios[all_scenarios["hits_net_zero"] == True]) == 3
+    assert len(all_scenarios[np.isfinite(all_scenarios["hits_net_zero"])]) == 3
     assert [
-               i for i in all_scenarios[all_scenarios["hits_net_zero"] == True].index if
-               i not in fewer_scenarios[fewer_scenarios["hits_net_zero"] == True].index
+               i for i in all_scenarios[np.isfinite(all_scenarios["hits_net_zero"])].index if
+               i not in fewer_scenarios[np.isfinite(fewer_scenarios["hits_net_zero"])].index
            ] == [("REMIND_1_5", "World", "not good ")]
     assert all(
-        fewer_scenarios[fewer_scenarios["hits_net_zero"] == True].index.get_level_values("scenario") == ["Fine", "Acceptable"]
+        fewer_scenarios[np.isfinite(fewer_scenarios["hits_net_zero"])].index.get_level_values("scenario") == ["Fine", "Acceptable"]
     )
 
 def test_scenario_filter_official_NZ():
@@ -258,7 +302,7 @@ def test_scenario_filter_official_NZ():
             permafrost=True,
             sr15_rename=False,
         )
-    fewer_scenarios = more_scenarios[more_scenarios["hits_net_zero"] == True]
+    fewer_scenarios = more_scenarios[np.isfinite(more_scenarios["hits_net_zero"])]
     # One of the passing years doesn't peak, so one of the 4 scenarios always fails
     assert len(more_scenarios) == 3
     assert len(fewer_scenarios) == 2

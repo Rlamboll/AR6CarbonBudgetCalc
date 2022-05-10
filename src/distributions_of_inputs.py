@@ -221,16 +221,17 @@ def load_data_from_MAGICC(
             zero_year = zero_years.loc[ind]
             if not np.isnan(zero_year):
                 temp = non_co2_df.loc[ind][zero_year]
-                temp_df.loc[ind, "hits_net_zero"] = True
+                temp_df.loc[ind, "hits_net_zero"] = zero_year
             else:
                 temp = non_co2_df.loc[ind][2100]
-                temp_df.loc[ind, "hits_net_zero"] = False
 
         elif peak_version == "peakNonCO2Warming":
             temp = max(non_co2_df.loc[ind])
+            temp_df.loc[ind, "hits_net_zero"] = non_co2_df.columns[np.argmax(non_co2_df.loc[ind])]
         elif peak_version == "nonCO2AtPeakTot":
-            max_year = np.where(max(tot_df.loc[ind]) == tot_df.loc[ind])[0]
-            temp = non_co2_df.loc[ind].iloc[max_year].values[0]
+            max_year_ind = np.where(max(tot_df.loc[ind]) == tot_df.loc[ind])[0]
+            temp = non_co2_df.loc[ind].iloc[max_year_ind].values[0]
+            temp_df.loc[ind, "hits_net_zero"] = tot_df.columns[max_year_ind]
         elif peak_version == "officialNZ":
             max_year = vetted_scens_nzyears.loc[
                 (vetted_scens_nzyears.model == ind[0]) & (vetted_scens_nzyears.scenario == ind[2])
@@ -238,10 +239,9 @@ def load_data_from_MAGICC(
 
             if not np.isnan(max_year):
                 temp = non_co2_df.loc[ind, max_year]
-                temp_df.loc[ind, "hits_net_zero"] = True
+                temp_df.loc[ind, "hits_net_zero"] = max_year
             else:
                 temp = non_co2_df.loc[ind, 2100]
-                temp_df.loc[ind, "hits_net_zero"] = False
         else:
             raise ValueError("Invalid choice for peak_version {}".format(peak_version))
         temp_df.loc[ind, non_co2_col] = temp - non_co2_df.loc[ind][offset_years].mean()
@@ -379,61 +379,59 @@ def load_data_from_FaIR(
     desired_scenarios_db,
     model_col,
     scenario_col,
-    year_col,
     magicc_non_co2_col,
     magicc_temp_col,
     offset_years,
+    fair_filestr
 ):
+    import netCDF4
     all_files = os.listdir(folder_all)
     CO2_only_files = os.listdir(folder_co2_only)
     assert all_files == CO2_only_files
     # We must find the correspondence between the file systems and the known years of
     # peak emissions
-    expected_filenames = (
-        "IPCCSR15_"
-        + desired_scenarios_db[model_col]
-        + "_"
-        + desired_scenarios_db[scenario_col]
-    )
+    desired_scenarios_db["filename"] = fair_filestr + desired_scenarios_db[model_col] + "_" + desired_scenarios_db[scenario_col]
+    expected_filenames = desired_scenarios_db["filename"]
     assert len(expected_filenames) == len(
         set(expected_filenames)
     ), "Expected file names are not clearly distinguishable"
-    expected_years = desired_scenarios_db[year_col]
-    compare_filenames = [x.replace(" ", "_").replace(".", "_")[:-12] for x in all_files]
-    assert len(compare_filenames) == len(
-        set(compare_filenames)
-    ), "Processed file names are not clearly distinguishable"
-    files_found_indx = [(y in compare_filenames) for y in expected_filenames]
-    expected_filenames = expected_filenames[files_found_indx]
-    expected_years = expected_years[files_found_indx]
+    filename_dict = {}
+    # Unfortunately the naming convention is quite different so we have to use a
+    # dictionary to convert between them
+    for i in expected_filenames:
+        compare_filename = [
+            x for x in all_files if (
+                x.replace(" ", "_").replace("/CGE", "").replace("/", "_").replace(
+                    "CDL", "CD-LINKS").replace("SocioeconomicFactorCM", "SFCM"
+                   ).replace("TransportERL", "TERL").replace(
+                    "WEM", "IEA_World_Energy_Model_2017")[:-12] == i.replace(" ", "_").replace(
+                "/CGE", "").replace("/", "_").replace("CDL", "CD-LINKS").replace(
+                "SocioeconomicFactorCM", "SFCM").replace("TransportERL", "TERL"
+                ).replace("WEM", "IEA_World_Energy_Model_2017")
+            )
+        ]
+        assert len(compare_filename) <= 1, \
+            "Processed file names are not clearly distinguishable"
+        if len(compare_filename) == 1:
+            filename_dict[i] = compare_filename[0]
+        else:
+            print(f"No match found for {i}")
     temp_all_dbs = []
     temp_only_co2_dbs = []
-    for ind in range(len(expected_filenames)):
-        file = [
-            i
-            for (i, v) in zip(
-                all_files,
-                [expected_filenames.iloc[ind] == y for y in compare_filenames],
-            )
-            if v
-        ]
-        assert len(file) == 1
-        file = file[0]
+    desired_inds = []
+    for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
-        time_ind = np.where(open_link_all.variables["time"] == expected_years.iloc[ind])
-        assert len(time_ind) == 1, (
-            "There must be exactly one match between the years"
-            "and the expected year, but there are {}".format(sum(time_ind))
-        )
-        time_ind = time_ind[0]
+        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
+        desired_inds.append(desired_ind)
+        selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
+        time_ind = np.where(open_link_all["time"][:] == selected_date)[0]
         offset_inds = np.where(
             [y in offset_years for y in open_link_all.variables["time"][:]]
         )[0]
-        assert len(offset_inds) == len(
-            offset_years
-        ), "We found the wrong number of offset years in the database."
+        assert len(offset_inds) == len(offset_years), \
+            "We found the wrong number of offset years in the database."
         all_temp = (
-            pd.DataFrame(open_link_all["temp"][time_ind, ::1]).mean(axis=0).mean(axis=0)
+            pd.DataFrame(open_link_all["temp"][time_ind, ::1]).median().median()
         )
         all_offset = (
             pd.DataFrame(open_link_all["temp"][offset_inds, ::1])
@@ -464,7 +462,7 @@ def load_data_from_FaIR(
         x > 0 for x in temp_only_co2_dbs
     ), "Does the database really contain a negative temperature change?"
     dbs = pd.DataFrame(
-        {magicc_temp_col: temp_all_dbs, magicc_non_co2_col: temp_no_co2_dbs},
+        {magicc_temp_col: temp_all_dbs, magicc_non_co2_col: temp_no_co2_dbs, "magicc_ind": desired_inds},
         dtype="float32",
     )
     return dbs
