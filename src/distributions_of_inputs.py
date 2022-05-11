@@ -397,18 +397,26 @@ def load_data_from_FaIR(
         set(expected_filenames)
     ), "Expected file names are not clearly distinguishable"
     filename_dict = {}
-    # Unfortunately the naming convention is quite different so we have to use a
-    # dictionary to convert between them
+    name_ind = -12 if all_files[0][-3:] == ".nc" else -4
+    # Unfortunately the naming convention is quite different between folders so we have to use a
+    # horrible gnarl of replacement code to convert between them
     for i in expected_filenames:
         compare_filename = [
             x for x in all_files if (
-                x.replace(" ", "_").replace("/CGE", "").replace("/", "_").replace(
-                    "CDL", "CD-LINKS").replace("SocioeconomicFactorCM", "SFCM"
-                   ).replace("TransportERL", "TERL").replace(
-                    "WEM", "IEA_World_Energy_Model_2017").replace("+", "_")[:-12] == i.replace(" ", "_").replace(
-                "/CGE", "").replace("/", "_").replace("CDL", "CD-LINKS").replace(
-                "SocioeconomicFactorCM", "SFCM").replace("TransportERL", "TERL"
-                ).replace("WEM", "IEA_World_Energy_Model_2017").replace("+", "_")
+            x.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
+                "_CGE", "").replace(
+                "CDL", "CD-LINKS").replace("-", "_").replace(
+                "SocioeconomicFactorCM", "SFCM"
+                ).replace("TransportERL", "TERL").replace(
+                "WEM", "IEA_World_Energy_Model_2017").replace("+", "_").replace(
+                "(", "_").replace(")", "_").replace("°", "_").replace("__", "_").replace("Npi", "NPI")[
+                :name_ind
+            ] == i.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
+                "_CGE", "").replace("CDL", "CD-LINKS").replace("-", "_").replace(
+                "SocioeconomicFactorCM", "SFCM").replace(
+                "TransportERL", "TERL").replace("WEM",
+                "IEA_World_Energy_Model_2017").replace(
+                "+", "_").replace("(", "_").replace("°", "_").replace(")", "_").replace("__", "_").replace("Npi", "NPI")
             )
         ]
         assert len(compare_filename) <= 1, \
@@ -439,8 +447,8 @@ def load_data_from_FaIR(
         )
         all_offset = (
             pd.DataFrame(open_link_all["temp"][offset_inds, ::1])
-            .mean(axis=0)
-            .mean(axis=0)
+                .mean(axis=0)
+                .mean(axis=0)
         )
         temp_all_dbs.append(all_temp - all_offset)
         if file[-3:] == ".nc":
@@ -449,20 +457,20 @@ def load_data_from_FaIR(
             open_link_co2_only = h5py.File(folder_co2_only + file)
         only_co2_temp = (
             pd.DataFrame(open_link_co2_only["temp"][time_ind, ::1])
-            .mean(axis=0)
-            .mean(axis=0)
+                .mean(axis=0)
+                .mean(axis=0)
         )
         only_co2_offset = (
             pd.DataFrame(open_link_co2_only["temp"][offset_inds, ::1])
-            .mean(axis=0)
-            .mean(axis=0)
+                .mean(axis=0)
+                .mean(axis=0)
         )
         temp_only_co2_dbs.append(only_co2_temp - only_co2_offset)
         assert (
-            all_offset > 0
-            and all_temp > 0
-            and only_co2_temp > 0
-            and only_co2_offset > 0
+                all_offset > 0
+                and all_temp > 0
+                and only_co2_temp > 0
+                and only_co2_offset > 0
         ), "Does the database really contain a negative temperature change?"
     temp_no_co2_dbs = np.array(temp_all_dbs) - temp_only_co2_dbs
     assert all(x > 0 for x in temp_all_dbs) and all(
