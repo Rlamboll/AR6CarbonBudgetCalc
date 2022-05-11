@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
-import scipy.interpolate
 from silicone.stats import rolling_window_find_quantiles
 
 def calculate_budget(
@@ -46,8 +45,6 @@ def rolling_window_find_quantiles(
 ):
     """
     Perform quantile analysis in the y-direction for x-weighted data.
-
-    This code is only used for drawing the graph, not on actual calculations.
 
     Divides the x-axis into nwindows of equal length and weights data by how close they
     are to the center of these boxes. Then returns the quantiles of this weighted data.

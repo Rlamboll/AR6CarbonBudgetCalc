@@ -385,6 +385,7 @@ def load_data_from_FaIR(
     fair_filestr
 ):
     import netCDF4
+    import h5py
     all_files = os.listdir(folder_all)
     CO2_only_files = os.listdir(folder_co2_only)
     assert all_files == CO2_only_files
@@ -404,10 +405,10 @@ def load_data_from_FaIR(
                 x.replace(" ", "_").replace("/CGE", "").replace("/", "_").replace(
                     "CDL", "CD-LINKS").replace("SocioeconomicFactorCM", "SFCM"
                    ).replace("TransportERL", "TERL").replace(
-                    "WEM", "IEA_World_Energy_Model_2017")[:-12] == i.replace(" ", "_").replace(
+                    "WEM", "IEA_World_Energy_Model_2017").replace("+", "_")[:-12] == i.replace(" ", "_").replace(
                 "/CGE", "").replace("/", "_").replace("CDL", "CD-LINKS").replace(
                 "SocioeconomicFactorCM", "SFCM").replace("TransportERL", "TERL"
-                ).replace("WEM", "IEA_World_Energy_Model_2017")
+                ).replace("WEM", "IEA_World_Energy_Model_2017").replace("+", "_")
             )
         ]
         assert len(compare_filename) <= 1, \
@@ -420,7 +421,10 @@ def load_data_from_FaIR(
     temp_only_co2_dbs = []
     desired_inds = []
     for orig, file in filename_dict.items():
-        open_link_all = netCDF4.Dataset(folder_all + file)
+        if file[-3:] == ".nc":
+            open_link_all = netCDF4.Dataset(folder_all + file)
+        elif file[-4:] == ".hdf":
+            open_link_all = h5py.File(folder_all + file)
         desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
         desired_inds.append(desired_ind)
         selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
@@ -439,7 +443,10 @@ def load_data_from_FaIR(
             .mean(axis=0)
         )
         temp_all_dbs.append(all_temp - all_offset)
-        open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
+        if file[-3:] == ".nc":
+            open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
+        elif file[-4:] == ".hdf":
+            open_link_co2_only = h5py.File(folder_co2_only + file)
         only_co2_temp = (
             pd.DataFrame(open_link_co2_only["temp"][time_ind, ::1])
             .mean(axis=0)

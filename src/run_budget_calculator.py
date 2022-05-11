@@ -52,7 +52,7 @@ quantiles_to_report = np.array([0.17, 0.33, 0.5, 0.66, 0.83])
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "sr15wg1"
+runver = "ar6wg3"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -141,6 +141,9 @@ if runver == "ar6wg3":
     # We also check that the scenarios used in the MAGICC are those that pass the vetting process
     vetted_scen_list_file = input_folder + "ar6_full_metadata_indicators2021_10_14_v3.xlsx"
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
+    fair_anthro_folder = "../InputData/fair163_ar6/all_temps/"
+    fair_co2_only_folder = "../InputData/fair163_ar6/co2_temps/"
+    fair_filestr = "FaIRv1.6.2__"
 elif runver == "sr15ccbox71":
     # SR1.5 with later MAGICC version as in CCBox 7.1
     jobno = "20211014-sr15"
@@ -268,8 +271,8 @@ for use_permafrost in List_use_permafrost:
                 master_all_non_co2 = pd.DataFrame(index=non_co2_dT_fair.index, columns=[magicc_non_co2_col, magicc_temp_col])
                 master_all_non_co2[magicc_non_co2_col] = non_co2_dT_fair[
                     magicc_non_co2_col] + magicc_db.reset_index()[magicc_non_co2_col]
-                master_all_non_co2[magicc_temp_col] = non_co2_dT_fair[
-                     magicc_temp_col] + magicc_db.reset_index()[magicc_temp_col]
+                master_all_non_co2[magicc_temp_col] = (non_co2_dT_fair[
+                     magicc_temp_col] + magicc_db.reset_index()[magicc_temp_col]) / 2
             else:
                 master_all_non_co2 = include_fair[[magicc_non_co2_col, magicc_temp_col]]
         else:
@@ -447,15 +450,20 @@ for use_permafrost in List_use_permafrost:
             legend_text = []
             if for_each_model:
                 plt.scatter(all_non_co2_db[magicc_temp_col], all_non_co2_db[magicc_non_co2_col], color="blue")
-            elif include_magicc:
-                plt.scatter(
-                    magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="blue"
-                )
-                legend_text.append("MAGICC")
+            else:
+                if include_magicc:
+                    plt.scatter(
+                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="blue"
+                    )
+                    legend_text.append("MAGICC")
+                if include_fair:
+                    plt.scatter(
+                        non_co2_dT_fair[magicc_temp_col], non_co2_dT_fair[magicc_non_co2_col], color="red"
+                    )
+                    legend_text.append("FaIR")
 
             plt.xlim(temp_plot_limits)
             plt.ylim(non_co2_plot_limits)
-            plt.legend(legend_text)
             plt.ylabel(magicc_non_co2_col)
             plt.xlabel(magicc_temp_col)
             if not use_as_median_non_co2:
@@ -466,6 +474,7 @@ for use_permafrost in List_use_permafrost:
                 plt.plot(
                     np.unique(x), np.poly1d(equation_of_fit)(np.unique(x)), color="black"
                 )
+                legend_text.append("line of best fit")
                 # Write the equation
                 equation_text = "y = " + str(
                     round(equation_of_fit[0], 4)
@@ -501,6 +510,7 @@ for use_permafrost in List_use_permafrost:
                         dashes=dashes,
                         color=color,
                     )
+                    legend_text.append(f"QRW {col} quantile")
             else:
                 minT = temp_plot_limits[0]
                 maxT = temp_plot_limits[1]
@@ -515,6 +525,10 @@ for use_permafrost in List_use_permafrost:
                             ls=line_dotting[i],
                             color="black",
                         )
+                        legend_text.append(
+                            "Linear quantile {}".format(quantile_reg_trends.loc[i, "quantile"])
+                        )
+
                 if nonlinear_nonco2:
                     for i, q in enumerate(quantile_reg_trends_nonlin.columns[1:]):
                         plt.plot(
@@ -523,6 +537,10 @@ for use_permafrost in List_use_permafrost:
                             ls=line_dotting[i],
                             color="cyan",
                         )
+                        if nonlinear_nonco2 == "QRW":
+                            legend_text.append(f"QRW {col} quantile")
+                        else:
+                            legend_text.append(f"Rolling {q} quantile")
                 if nonlinear_nonco2 == "all":
                     for i, q in enumerate(quantile_reg_trends_nonlin_qrw.columns[1:]):
                         plt.plot(
@@ -531,6 +549,8 @@ for use_permafrost in List_use_permafrost:
                             ls=line_dotting[i],
                             color="red",
                         )
+                        legend_text.append(f"QRW {q} quantile")
+            plt.legend(legend_text)
             fig.savefig(
                 output_folder + model + output_figure_file.format(
                     include_magicc, include_fair, use_permafrost,
