@@ -429,26 +429,31 @@ def load_data_from_FaIR(
     temp_only_co2_dbs = []
     desired_inds = []
     for orig, file in filename_dict.items():
-        if file[-3:] == ".nc":
-            open_link_all = netCDF4.Dataset(folder_all + file)
-        elif file[-4:] == ".hdf":
-            open_link_all = h5py.File(folder_all + file)
-        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
+        open_link_all = netCDF4.Dataset(folder_all + file)
+        desired_ind = \
+        np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
         desired_inds.append(desired_ind)
         selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
-        time_ind = np.where(open_link_all["time"][:] == selected_date)[0]
-        offset_inds = np.where(
-            [y in offset_years for y in open_link_all.variables["time"][:]]
-        )[0]
+        if file[-3:] == ".nc":
+            var = "temp"
+            time_ind = np.where(open_link_all["time"][:] == selected_date)[0]
+            offset_inds = np.where(
+                [y in offset_years for y in open_link_all.variables["time"][:]]
+            )[0]
+        elif file[-4:] == ".hdf":
+            zero_year = 1750
+            var = "temperature"
+            time_ind = int(selected_date - zero_year)
+            offset_inds = np.where(
+                [y in offset_years for y in range(zero_year, zero_year+open_link_all[var].shape[0])]
+            )[0]
         assert len(offset_inds) == len(offset_years), \
             "We found the wrong number of offset years in the database."
         all_temp = (
-            pd.DataFrame(open_link_all["temp"][time_ind, ::1]).median().median()
+            pd.DataFrame(open_link_all[var][time_ind, ::1]).median().median()
         )
         all_offset = (
-            pd.DataFrame(open_link_all["temp"][offset_inds, ::1])
-                .mean(axis=0)
-                .mean(axis=0)
+            pd.DataFrame(open_link_all[var][offset_inds, ::1]).median().median()
         )
         temp_all_dbs.append(all_temp - all_offset)
         if file[-3:] == ".nc":
@@ -456,14 +461,10 @@ def load_data_from_FaIR(
         elif file[-4:] == ".hdf":
             open_link_co2_only = h5py.File(folder_co2_only + file)
         only_co2_temp = (
-            pd.DataFrame(open_link_co2_only["temp"][time_ind, ::1])
-                .mean(axis=0)
-                .mean(axis=0)
+            pd.DataFrame(open_link_co2_only[var][time_ind, ::1]).median().median()
         )
         only_co2_offset = (
-            pd.DataFrame(open_link_co2_only["temp"][offset_inds, ::1])
-                .mean(axis=0)
-                .mean(axis=0)
+            pd.DataFrame(open_link_co2_only[var][offset_inds, ::1]).median().median()
         )
         temp_only_co2_dbs.append(only_co2_temp - only_co2_offset)
         assert (

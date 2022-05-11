@@ -127,9 +127,12 @@ os.makedirs(output_folder, exist_ok=True)
 peak_version = "nonCO2AtPeakTot"
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
+# We want a list of bools indicating whether to run the code with values from MAGICC,
+# FaIR or both.
+include_list = [(True, False), (True, True), (False, True)]
 
 ##  Load data for MAGICC and FaIR
-# We wish to recall one of several MAGICC runs, depending on the situation
+# We wish to recall one of several MAGICC runs, depending on the situation.
 if runver == "ar6wg3":
     # AR6 WG3 version.
     # Strings to describe the runs, filed with a job number
@@ -240,41 +243,40 @@ for use_permafrost in List_use_permafrost:
     # Construct the container for saved results
     all_fit_lines = []
     # Modify the following loop to use subsets of data for robustness checks
-    for case_ind in range(1):
-        # At some point we may want to check robustnesss to including alternative
-        # simplified models to evaluate non-CO2 impacts. Currently only MAGICC data is
-        # used.
-        include_magicc = True
-        include_fair = True
+    for case_ind in range(len(include_list)):
+        include_magicc = include_list[case_ind][0]
+        include_fair = include_list[case_ind][1]
         if include_fair:
-            model_col = "model"
-            scenario_col = "scenario"
-            year_col = "peak cumulative emissions co2 (rel. to 2015-2015) year"
-            fair_offset_years = np.arange(2010, 2020, 1)
-            non_co2_dT_fair = distributions.load_data_from_FaIR(
-                fair_anthro_folder,
-                fair_co2_only_folder,
-                magicc_db.reset_index(),
-                model_col,
-                scenario_col,
-                magicc_non_co2_col,
-                magicc_temp_col,
-                fair_offset_years,
-                fair_filestr,
-            )
             if magicc_savename:
-                non_co2_dT_fair.to_csv(
-                    output_folder + magicc_savename.format(use_permafrost).replace("magicc", "fair")
+                fair_file_name = output_folder + magicc_savename.format(use_permafrost).replace("magicc", "fair")
+                if os.path.exists(fair_file_name):
+                    non_co2_dT_fair = pd.read_csv(fair_file_name)
+            if (magicc_savename == None) or not os.path.exists(fair_file_name):
+                model_col = "model"
+                scenario_col = "scenario"
+                fair_offset_years = np.arange(2010, 2020, 1)
+                non_co2_dT_fair = distributions.load_data_from_FaIR(
+                    fair_anthro_folder,
+                    fair_co2_only_folder,
+                    magicc_db.reset_index(),
+                    model_col,
+                    scenario_col,
+                    magicc_non_co2_col,
+                    magicc_temp_col,
+                    fair_offset_years,
+                    fair_filestr,
                 )
+            if magicc_savename:
+                non_co2_dT_fair.to_csv(fair_file_name)
             if include_magicc:
                 non_co2_dT_fair = non_co2_dT_fair.set_index("magicc_ind")
                 master_all_non_co2 = pd.DataFrame(index=non_co2_dT_fair.index, columns=[magicc_non_co2_col, magicc_temp_col])
-                master_all_non_co2[magicc_non_co2_col] = non_co2_dT_fair[
-                    magicc_non_co2_col] + magicc_db.reset_index()[magicc_non_co2_col]
+                master_all_non_co2[magicc_non_co2_col] = (non_co2_dT_fair[
+                    magicc_non_co2_col] + magicc_db.reset_index()[magicc_non_co2_col]) /2
                 master_all_non_co2[magicc_temp_col] = (non_co2_dT_fair[
                      magicc_temp_col] + magicc_db.reset_index()[magicc_temp_col]) / 2
             else:
-                master_all_non_co2 = include_fair[[magicc_non_co2_col, magicc_temp_col]]
+                master_all_non_co2 = non_co2_dT_fair[[magicc_non_co2_col, magicc_temp_col]]
         else:
             master_all_non_co2 = magicc_db[[magicc_non_co2_col, magicc_temp_col]]
         if for_each_model:
@@ -358,7 +360,7 @@ for use_permafrost in List_use_permafrost:
                         xy_df, quantiles_to_plot, smoothing=20
                     )
                     quantile_reg_trends_nonlin_qrw = budget_func.quantile_regression_quantile_rolling_windows(
-                        xy_df, quantiles_to_plot,
+                        xy_df, quantiles_to_plot, nwindows=20
                     )
 
             else:
@@ -453,12 +455,12 @@ for use_permafrost in List_use_permafrost:
             else:
                 if include_magicc:
                     plt.scatter(
-                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="blue"
+                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="blue", s=6
                     )
                     legend_text.append("MAGICC")
                 if include_fair:
                     plt.scatter(
-                        non_co2_dT_fair[magicc_temp_col], non_co2_dT_fair[magicc_non_co2_col], color="red"
+                        non_co2_dT_fair[magicc_temp_col], non_co2_dT_fair[magicc_non_co2_col], color="cornflowerblue", s=6
                     )
                     legend_text.append("FaIR")
 
