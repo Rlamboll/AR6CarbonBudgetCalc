@@ -52,7 +52,7 @@ quantiles_to_report = np.array([0.17, 0.33, 0.5, 0.66, 0.83])
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "ar6wg3"
+runver = "sr15ccbox71"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -155,6 +155,9 @@ elif runver == "sr15ccbox71":
     # We use a compound vetting file
     vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
     vetted_scen_list_file_sheet = "Sheet1"
+    fair_anthro_folder = "../InputData/fair163_sr15/SR15_all_temps/"
+    fair_co2_only_folder = "../InputData/fair163_sr15/SR15_co2_temps/"
+    fair_filestr = "FaIRv1.6.2__"
 elif runver == "sr15wg1":
     # # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for WG1 RCB calculations)
     jobno = "20210224-sr15"

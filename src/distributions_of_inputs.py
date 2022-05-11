@@ -403,20 +403,19 @@ def load_data_from_FaIR(
     for i in expected_filenames:
         compare_filename = [
             x for x in all_files if (
-            x.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
+            x[:name_ind].replace(" ", "_").replace("/", "_").replace(",", "_").replace(
                 "_CGE", "").replace(
                 "CDL", "CD-LINKS").replace("-", "_").replace(
                 "SocioeconomicFactorCM", "SFCM"
                 ).replace("TransportERL", "TERL").replace(
-                "WEM", "IEA_World_Energy_Model_2017").replace("+", "_").replace(
-                "(", "_").replace(")", "_").replace("°", "_").replace("__", "_").replace("Npi", "NPI")[
-                :name_ind
-            ] == i.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
+                "WEM", "IEA_World_Energy_Model_2017").replace("REMIND_1.5", "REMIND_1_5").replace(".", "_").replace("+", "_").replace(
+                "(", "_").replace(")", "_").replace("°", "_").replace("$", "_").replace(
+                "__", "_").replace("Npi", "NPI")  == i.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
                 "_CGE", "").replace("CDL", "CD-LINKS").replace("-", "_").replace(
                 "SocioeconomicFactorCM", "SFCM").replace(
                 "TransportERL", "TERL").replace("WEM",
-                "IEA_World_Energy_Model_2017").replace(
-                "+", "_").replace("(", "_").replace("°", "_").replace(")", "_").replace("__", "_").replace("Npi", "NPI")
+                "IEA_World_Energy_Model_2017").replace("REMIND_1.5", "REMIND_1_5").replace(".", "_").replace(
+                "+", "_").replace("(", "_").replace("°", "_").replace(")", "_").replace("$", "_").replace("__", "_").replace("Npi", "NPI")
             )
         ]
         assert len(compare_filename) <= 1, \
