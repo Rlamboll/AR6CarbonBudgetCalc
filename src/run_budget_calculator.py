@@ -44,15 +44,18 @@ earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2
 earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
-recent_emissions = 208.81  # 0
-# We will present the budgets at these probability quantiles.
-quantiles_to_report = np.array([0.17, 0.33, 0.5, 0.66, 0.83])
+recent_emissions = 208.81
+# We will present the budgets at these probability quantiles. (Switches between easy
+# reading and data for plots)
+allquant = False
+quantiles_to_report = np.arange(0.01, 0.991, 0.01) if allquant else np.array(
+    [0.17, 0.33, 0.5, 0.66, 0.83])
 
 # Run version should be ar6wg3, sr15ccbox71, or sr15wg1, corresponding to running the
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "sr15ccbox71"
+runver = "ar6wg3"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -69,9 +72,9 @@ else:
 
 # Output file location for budget data. Includes {} sections detailing inclusion of
 # TCRE, inclusion of magic/fair, earth system feedback and likelihood. More added later
-output_file = (
+output_file = ("allquant" if allquant else "") + \
     "budget_{}_magicc_{}_fair_{}_esf_{}pm{}_likeli_{}_nonCO2pc{}_GtCO2_permaf_{}_hdT_{}"
-)
+
 # Output location for figure of peak warming vs non-CO2 warming. More appended later
 output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{}_nonCO2pc{}_nonlin_{}"
 # Quantile fit lines to plot on the temperatures graph.
@@ -124,7 +127,7 @@ os.makedirs(output_folder, exist_ok=True)
 # temperature.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-peak_version = "nonCO2AtPeakTot"
+peak_version = None
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
 # We want a list of bools indicating whether to run the code with values from MAGICC,
@@ -386,6 +389,7 @@ for use_permafrost in List_use_permafrost:
                 tcres = distributions.tcre_distribution(
                     tcre_low, tcre_high, likelihood, n_loops, tcre_dist
                 )
+                assert (sum(tcres < 0) / n_loops) < 0.01, "Cannot trust quantiles > 0.01"
                 budgets = budget_func.calculate_budget(
                     dT_target, zec, historical_dT, non_co2_dT, tcres, earth_feedback_co2
                 )
@@ -543,7 +547,7 @@ for use_permafrost in List_use_permafrost:
                             color="cyan",
                         )
                         if nonlinear_nonco2 == "QRW":
-                            legend_text.append(f"QRW {col} quantile")
+                            legend_text.append(f"QRW {q} quantile")
                         else:
                             legend_text.append(f"Rolling {q} quantile")
                 if nonlinear_nonco2 == "all":
