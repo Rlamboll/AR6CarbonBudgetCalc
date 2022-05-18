@@ -366,7 +366,7 @@ for use_permafrost in List_use_permafrost:
                         xy_df, quantiles_to_plot, smoothing=20
                     )
                     quantile_reg_trends_nonlin_qrw = budget_func.quantile_regression_quantile_rolling_windows(
-                        xy_df, quantiles_to_plot, nwindows=20
+                        xy_df, quantiles_to_plot
                     )
 
             else:
@@ -389,7 +389,6 @@ for use_permafrost in List_use_permafrost:
                 tcres = distributions.tcre_distribution(
                     tcre_low, tcre_high, likelihood, n_loops, tcre_dist
                 )
-                assert (sum(tcres < 0) / n_loops) < 0.01, "Cannot trust quantiles > 0.01"
                 budgets = budget_func.calculate_budget(
                     dT_target, zec, historical_dT, non_co2_dT, tcres, earth_feedback_co2
                 )
@@ -434,12 +433,12 @@ for use_permafrost in List_use_permafrost:
 
             # Make plots of the data
             temp_plot_limits = [
-                min(magicc_db[magicc_temp_col]),
-                max(magicc_db[magicc_temp_col]),
+                min(all_non_co2_db[magicc_temp_col]),
+                max(all_non_co2_db[magicc_temp_col]),
             ]
             non_co2_plot_limits = [
-                min(magicc_db[magicc_non_co2_col]),
-                max(magicc_db[magicc_non_co2_col]),
+                min(all_non_co2_db[magicc_non_co2_col]),
+                max(all_non_co2_db[magicc_non_co2_col]),
             ]
 
             def add_fringe(limits, fringe):
@@ -451,8 +450,8 @@ for use_permafrost in List_use_permafrost:
                 return limits
 
             # 0.04 is chosen for the fringes for aesthetic reasons
-            temp_plot_limits = add_fringe(temp_plot_limits, 0.04)
-            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.04)
+            temp_plot_limits = add_fringe(temp_plot_limits, 0.10)
+            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.10)
             plt.close()
             fig = plt.figure(figsize=(12, 7))
             ax = fig.add_subplot(111)
@@ -462,7 +461,7 @@ for use_permafrost in List_use_permafrost:
             else:
                 if include_magicc:
                     plt.scatter(
-                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="blue", s=6
+                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="darkblue", s=6
                     )
                     legend_text.append("MAGICC")
                 if include_fair:
@@ -470,7 +469,11 @@ for use_permafrost in List_use_permafrost:
                         non_co2_dT_fair[magicc_temp_col], non_co2_dT_fair[magicc_non_co2_col], color="cornflowerblue", s=6
                     )
                     legend_text.append("FaIR")
-
+                if include_fair and include_magicc:
+                    plt.scatter(
+                        all_non_co2_db[magicc_temp_col], all_non_co2_db[magicc_non_co2_col], color="blue", s=6
+                    )
+                    legend_text.append("Averaged")
             plt.xlim(temp_plot_limits)
             plt.ylim(non_co2_plot_limits)
             plt.ylabel(magicc_non_co2_col)
@@ -538,7 +541,7 @@ for use_permafrost in List_use_permafrost:
                             "Linear quantile {}".format(quantile_reg_trends.loc[i, "quantile"])
                         )
 
-                if nonlinear_nonco2:
+                if nonlinear_nonco2 in ["rollingQuantiles", "QRW"]:
                     for i, q in enumerate(quantile_reg_trends_nonlin.columns[1:]):
                         plt.plot(
                             quantile_reg_trends_nonlin["x"],
