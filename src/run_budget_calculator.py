@@ -127,7 +127,7 @@ os.makedirs(output_folder, exist_ok=True)
 # temperature.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-peak_version = None
+peak_version = "nonCO2AtPeakTot"
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
 # We want a list of bools indicating whether to run the code with values from MAGICC,
@@ -151,7 +151,7 @@ if runver == "ar6wg3":
     fair_co2_only_folder = "../InputData/fair163_ar6/co2_temps/"
     fair_filestr = "FaIRv1.6.2__"
 elif runver == "sr15ccbox71":
-    # SR1.5 with later MAGICC version as in CCBox 7.1
+    # SR1.5 with later MAGICC version as in Cross Chapter Box 7.1 of AR6WG1
     jobno = "20211014-sr15"
     magiccver = "7.5.3"
     input_folder = "../InputData/MAGICCCCB71_sr15scen/"
@@ -162,13 +162,15 @@ elif runver == "sr15ccbox71":
     fair_co2_only_folder = "../InputData/fair163_sr15/SR15_co2_temps/"
     fair_filestr = "FaIRv1.6.2__"
 elif runver == "sr15wg1":
-    # # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for WG1 RCB calculations)
+    # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
+    # main WG1 RCB calculations)
     jobno = "20210224-sr15"
     magiccver = "7.5.1"
     input_folder = "../InputData/MAGICCMeinshausenInputs_sr15scen/"
     vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
-    # The folders for the unscaled anthropological temperature changes files (many nc files)
+    # The folders for the unscaled anthropological temperature changes files (many nc
+    # files)
     fair_anthro_folder = "../InputData/fair141_sr15/FAIR141anthro_unscaled/"
     fair_co2_only_folder = "../InputData/fair141_sr15/FAIR141CO2_unscaled/"
     fair_filestr = "IPCCSR15_"
@@ -207,7 +209,7 @@ magicc_savename = "magicc_nonCO2_temp_{}Percentile".format(
 # Note that the upper limit of the range is not included in python.
 temp_offset_years = np.arange(2010, 2020, 1)
 # Use permafrost may be True, False or both (iterates over the list)
-List_use_permafrost = [False]
+List_use_permafrost = [True]
 
 # ______________________________________________________________________________________
 # The parts below should not need editing
@@ -271,9 +273,9 @@ for use_permafrost in List_use_permafrost:
                     magicc_temp_col,
                     fair_offset_years,
                     fair_filestr,
+                    peak_version,
                 )
-            if magicc_savename:
-                non_co2_dT_fair.to_csv(fair_file_name)
+                non_co2_dT_fair.to_csv(fair_file_name, index=False)
             if include_magicc:
                 non_co2_dT_fair = non_co2_dT_fair.set_index("magicc_ind")
                 master_all_non_co2 = pd.DataFrame(index=non_co2_dT_fair.index, columns=[magicc_non_co2_col, magicc_temp_col])
@@ -433,8 +435,8 @@ for use_permafrost in List_use_permafrost:
 
             # Make plots of the data
             temp_plot_limits = [
-                min(all_non_co2_db[magicc_temp_col]),
-                max(all_non_co2_db[magicc_temp_col]),
+                min(all_non_co2_db[magicc_temp_col]) + historical_dT,
+                max(all_non_co2_db[magicc_temp_col]) + historical_dT,
             ]
             non_co2_plot_limits = [
                 min(all_non_co2_db[magicc_non_co2_col]),
@@ -449,7 +451,7 @@ for use_permafrost in List_use_permafrost:
                 limits[1] = limits[1] + offset
                 return limits
 
-            # 0.04 is chosen for the fringes for aesthetic reasons
+            # 0.10 is chosen for the fringes for aesthetic reasons
             temp_plot_limits = add_fringe(temp_plot_limits, 0.10)
             non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.10)
             plt.close()
@@ -457,29 +459,30 @@ for use_permafrost in List_use_permafrost:
             ax = fig.add_subplot(111)
             legend_text = []
             if for_each_model:
-                plt.scatter(all_non_co2_db[magicc_temp_col], all_non_co2_db[magicc_non_co2_col], color="blue")
+                plt.scatter(all_non_co2_db[magicc_temp_col] + historical_dT, all_non_co2_db[magicc_non_co2_col], color="blue")
             else:
                 if include_magicc:
                     plt.scatter(
-                        magicc_db[magicc_temp_col], magicc_db[magicc_non_co2_col], color="darkblue", s=6
+                        magicc_db[magicc_temp_col] + historical_dT, magicc_db[magicc_non_co2_col], color="navy", s=6
                     )
                     legend_text.append("MAGICC")
                 if include_fair:
                     plt.scatter(
-                        non_co2_dT_fair[magicc_temp_col], non_co2_dT_fair[magicc_non_co2_col], color="cornflowerblue", s=6
+                        non_co2_dT_fair[magicc_temp_col] + historical_dT, non_co2_dT_fair[magicc_non_co2_col], color="cornflowerblue", s=6
                     )
                     legend_text.append("FaIR")
                 if include_fair and include_magicc:
                     plt.scatter(
-                        all_non_co2_db[magicc_temp_col], all_non_co2_db[magicc_non_co2_col], color="blue", s=6
+                        all_non_co2_db[magicc_temp_col] + historical_dT, all_non_co2_db[magicc_non_co2_col], color="b", s=6
                     )
                     legend_text.append("Averaged")
             plt.xlim(temp_plot_limits)
             plt.ylim(non_co2_plot_limits)
-            plt.ylabel(magicc_non_co2_col)
-            plt.xlabel(magicc_temp_col)
+
+            plt.ylabel("Non-CO$_2$ warming relative to 2010-2019 (C)")
+            plt.xlabel("Peak total warming (C)")
             if not use_as_median_non_co2:
-                x = all_non_co2_db[magicc_temp_col]
+                x = all_non_co2_db[magicc_temp_col] + historical_dT
                 y = all_non_co2_db[magicc_non_co2_col]
                 equation_of_fit = np.polyfit(x, y, 1)
                 all_fit_lines.append(equation_of_fit)
@@ -531,8 +534,8 @@ for use_permafrost in List_use_permafrost:
                         plt.plot(
                             (minT, maxT),
                             (
-                                quantile_reg_trends["b"][i] * minT + quantile_reg_trends["a"][i],
-                                quantile_reg_trends["b"][i] * maxT + quantile_reg_trends["a"][i],
+                                quantile_reg_trends["b"][i] * (minT - historical_dT) + quantile_reg_trends["a"][i],
+                                quantile_reg_trends["b"][i] * (maxT - historical_dT) + quantile_reg_trends["a"][i],
                             ),
                             ls=line_dotting[i],
                             color="black",
@@ -544,7 +547,7 @@ for use_permafrost in List_use_permafrost:
                 if nonlinear_nonco2 in ["rollingQuantiles", "QRW"]:
                     for i, q in enumerate(quantile_reg_trends_nonlin.columns[1:]):
                         plt.plot(
-                            quantile_reg_trends_nonlin["x"],
+                            quantile_reg_trends_nonlin["x"] + historical_dT,
                             quantile_reg_trends_nonlin[q],
                             ls=line_dotting[i],
                             color="cyan",
@@ -556,13 +559,19 @@ for use_permafrost in List_use_permafrost:
                 if nonlinear_nonco2 == "all":
                     for i, q in enumerate(quantile_reg_trends_nonlin_qrw.columns[1:]):
                         plt.plot(
-                            quantile_reg_trends_nonlin_qrw["x"],
+                            quantile_reg_trends_nonlin_qrw["x"] + historical_dT,
                             quantile_reg_trends_nonlin_qrw[q],
                             ls=line_dotting[i],
                             color="red",
                         )
                         legend_text.append(f"QRW {q} quantile")
             plt.legend(legend_text)
+            plt.plot(
+                [temp_plot_limits[0]+0.05, temp_plot_limits[0]+0.05],
+                [non_co2_plot_limits[1] - 0.03 - (tcre_high+tcre_low)/2*100, non_co2_plot_limits[1] - 0.03],
+                lw=10
+            )
+            plt.text(temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575, "Warming from 100 GtCO$_2$")
             fig.savefig(
                 output_folder + model + output_figure_file.format(
                     include_magicc, include_fair, use_permafrost,

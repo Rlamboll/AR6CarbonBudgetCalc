@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 
 results_folder = "../Output/"
-subfolders = ["ar6wg3/", "sr15ccbox71/", "sr15wg1/"]
+subfolders = ["sr15wg1/", "ar6wg3/", "sr15ccbox71/"]
 
 # The results will go into the output folder, in this subfolder:
 plot_folder = "Plots/"
@@ -26,7 +26,7 @@ for subfolder in subfolders:
     for distribution in ["normal", "lognormal"]:
         for MAGICC in [True, False]:
             for FaIR in [True, False]:
-                for ESF in [0.0, 7.1]:
+                for ESF in [7.1]:
                     for Permafrost in [True, False]:
                         for NonCO2 in ["all", "QRW"]:
                             try:

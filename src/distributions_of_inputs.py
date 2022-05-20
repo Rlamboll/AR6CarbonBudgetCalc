@@ -382,10 +382,10 @@ def load_data_from_FaIR(
     magicc_non_co2_col,
     magicc_temp_col,
     offset_years,
-    fair_filestr
+    fair_filestr,
+    peak_version
 ):
     import netCDF4
-    import h5py
     all_files = os.listdir(folder_all)
     CO2_only_files = os.listdir(folder_co2_only)
     assert all_files == CO2_only_files
@@ -429,41 +429,61 @@ def load_data_from_FaIR(
     desired_inds = []
     for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
-        desired_ind = \
-        np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
+        open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
+        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
         desired_inds.append(desired_ind)
-        selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
         if file[-3:] == ".nc":
             var = "temp"
-            time_ind = np.where(open_link_all["time"][:] == selected_date)[0]
             offset_inds = np.where(
                 [y in offset_years for y in open_link_all.variables["time"][:]]
             )[0]
         elif file[-4:] == ".hdf":
-            zero_year = 1750
             var = "temperature"
-            time_ind = int(selected_date - zero_year)
+            zero_year = 1750
             offset_inds = np.where(
-                [y in offset_years for y in range(zero_year, zero_year+open_link_all[var].shape[0])]
+                [y in offset_years for y in
+                 range(zero_year, zero_year + open_link_all[var].shape[0])]
             )[0]
+        else:
+            raise ValueError(f"File {file} in the wrong format")
         assert len(offset_inds) == len(offset_years), \
             "We found the wrong number of offset years in the database."
+        selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
+        if peak_version == "peakNonCO2Warming":
+            all_temp_ever = (
+                pd.DataFrame(open_link_all[var][:, ::1]).median(axis=1)
+            )
+            only_co2_temp_ever = (
+                pd.DataFrame(open_link_co2_only[var][:, ::1]).median(axis=1)
+            )
+            time_ind_nonco2 = np.where(
+                all_temp_ever-only_co2_temp_ever == max(all_temp_ever-only_co2_temp_ever)
+            )[0]
+        elif peak_version in [None, "officialNZ"]:
+            if file[-3:] == ".nc":
+                time_ind_nonco2 = np.where(open_link_all["time"][:] == selected_date)[0]
+            else:
+                time_ind_nonco2 = int(selected_date - zero_year)
+        elif peak_version == "nonCO2AtPeakTot":
+            time_ind_nonco2 = np.where(
+                pd.DataFrame(open_link_all[var][:]).median(axis=1) == max(pd.DataFrame(
+                    open_link_all[var][:]).median(axis=1))
+            )[0]
+        else:
+            raise ValueError(f"peak version {peak_version} not a valid option")
         all_temp = (
-            pd.DataFrame(open_link_all[var][time_ind, ::1]).median().median()
+            pd.DataFrame(open_link_all[var][:, ::1]).median(axis=1).max()
         )
         all_offset = (
-            pd.DataFrame(open_link_all[var][offset_inds, ::1]).median().median()
+            pd.DataFrame(open_link_all[var][offset_inds, ::1]).mean().median()
         )
         temp_all_dbs.append(all_temp - all_offset)
-        if file[-3:] == ".nc":
-            open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
-        elif file[-4:] == ".hdf":
-            open_link_co2_only = h5py.File(folder_co2_only + file)
+
         only_co2_temp = (
-            pd.DataFrame(open_link_co2_only[var][time_ind, ::1]).median().median()
+            pd.DataFrame(open_link_co2_only[var][time_ind_nonco2, ::1]).median().median()
         )
         only_co2_offset = (
-            pd.DataFrame(open_link_co2_only[var][offset_inds, ::1]).median().median()
+            pd.DataFrame(open_link_co2_only[var][offset_inds, ::1]).mean().median()
         )
         temp_only_co2_dbs.append(only_co2_temp - only_co2_offset)
         assert (
