@@ -17,9 +17,13 @@ dT_targets = np.arange(1.1, 2.6, 0.1)
 # The number of loops performed for each temperature. Runs in seconds for ~ 10^6, higher
 # reduces statistical error but takes longer
 n_loops = 1000000
-# The change in temperature that will occur after zero emissions has been reached.
+# ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
-zec = 0.0
+zec_mean = 0.0
+zec_sd = 0.19
+# Should we interpret the distribution of ZEC in an asymmetric way, i.e. ignore when its
+# negative but include when positive?
+zec_asym = False
 # The temperature difference already seen. (Units: C)
 historical_dT = 1.07
 # The distribution of the TCRE function - either "normal", "lognormal mean match" or
@@ -73,10 +77,10 @@ else:
 # Output file location for budget data. Includes {} sections detailing inclusion of
 # TCRE, inclusion of magic/fair, earth system feedback and likelihood. More added later
 output_file = ("allquant" if allquant else "") + \
-    "budget_{}_magicc_{}_fair_{}_esf_{}pm{}_likeli_{}_nonCO2pc{}_GtCO2_permaf_{}_hdT_{}"
+    "budget_{}_magicc_{}_fair_{}_esf_{}pm{}_likeli_{}_nonCO2pc{}_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_{}"
 
 # Output location for figure of peak warming vs non-CO2 warming. More appended later
-output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{}_nonCO2pc{}_nonlin_{}"
+output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_zecsd_{}_asym_{}_nonCO2pc{}_nonlin_{}"
 # Quantile fit lines to plot on the temperatures graph.
 # If use_as_median_non_co2 evaluates as True, this must include that quantile (by
 # default 0.5)
@@ -127,7 +131,7 @@ os.makedirs(output_folder, exist_ok=True)
 # temperature.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-peak_version = "nonCO2AtPeakTot"
+peak_version = None
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
 # We want a list of bools indicating whether to run the code with values from MAGICC,
@@ -205,11 +209,14 @@ magicc_tot_temp_variable = "{} climate diagnostics|Raw Surface Temperature (GSAT
 magicc_savename = "magicc_nonCO2_temp_{}Percentile".format(
     nonco2_percentile
 ) + str(peak_version) + "permaf_{}.csv"
+# If FaIR data is wanted, we will attempt to load it from here, and if not available we
+# will generate it and save that for reuse later
+fair_savename = f"fair_nonCO2_temp_50Percentile_{peak_version}.csv"
 # Years over which we set the average temperature to 0.
 # Note that the upper limit of the range is not included in python.
 temp_offset_years = np.arange(2010, 2020, 1)
 # Use permafrost may be True, False or both (iterates over the list)
-List_use_permafrost = [True]
+List_use_permafrost = [False]
 
 # ______________________________________________________________________________________
 # The parts below should not need editing
@@ -256,7 +263,7 @@ for use_permafrost in List_use_permafrost:
         include_fair = include_list[case_ind][1]
         if include_fair:
             if magicc_savename:
-                fair_file_name = output_folder + magicc_savename.format(use_permafrost).replace("magicc", "fair")
+                fair_file_name = output_folder + fair_savename
                 if os.path.exists(fair_file_name):
                     non_co2_dT_fair = pd.read_csv(fair_file_name)
             if (magicc_savename == None) or not os.path.exists(fair_file_name):
@@ -391,6 +398,7 @@ for use_permafrost in List_use_permafrost:
                 tcres = distributions.tcre_distribution(
                     tcre_low, tcre_high, likelihood, n_loops, tcre_dist
                 )
+                zec = distributions.zec_dist(zec_mean, zec_sd, zec_asym, n_loops)
                 budgets = budget_func.calculate_budget(
                     dT_target, zec, historical_dT, non_co2_dT, tcres, earth_feedback_co2
                 )
@@ -413,9 +421,12 @@ for use_permafrost in List_use_permafrost:
                     likelihood,
                     nonco2_percentile,
                     use_permafrost,
+                    zec_sd,
+                    zec_asym,
                     historical_dT,
                 )
             )
+            """
             # Convert the data to PgC and save again
             PgC_budget_quantiles = budget_quantiles
             PgC_budget_quantiles[quantiles_to_report] *= 1/3.664
@@ -429,10 +440,12 @@ for use_permafrost in List_use_permafrost:
                     likelihood,
                     nonco2_percentile,
                     use_permafrost,
+                    zec_sd,
+                    zec_asym,
                     historical_dT,
                 ).replace("GtCO2", "PgC")
             )
-
+            """
             # Make plots of the data
             temp_plot_limits = [
                 min(all_non_co2_db[magicc_temp_col]) + historical_dT,
@@ -574,7 +587,7 @@ for use_permafrost in List_use_permafrost:
             plt.text(temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575, "Warming from 100 GtCO$_2$")
             fig.savefig(
                 output_folder + model + output_figure_file.format(
-                    include_magicc, include_fair, use_permafrost,
+                    include_magicc, include_fair, use_permafrost, zec_sd, zec_asym,
                     nonco2_percentile, nonlinear_nonco2
                 ),
                 bbox_inches="tight"

@@ -62,6 +62,25 @@ def tcre_distribution(low, high, likelihood, n_return, tcre_dist):
     )
 
 
+def zec_dist(zec_mean, zec_sd, zec_asym, n_loops):
+    """
+    Calculates the range of possible values for ZEC
+    :param zec_mean:
+        The mean value of ZEC (not the actual mean returned if zec_asym is True)
+    :param zec_sd:
+        The standard deviation of ZEC
+    :param zec_asym:
+        If false, return the values from the normal distribution. If True, all ZEC
+        contributions below 0 are ignored (assumed to occur too late)
+    :param: n_loops:
+         number of instances to return
+    :return: np.array
+    """
+    zec = np.random.normal(zec_mean, zec_sd, n_loops)
+    if zec_asym:
+        zec = np.array([max(x, 0) for x in zec])
+    return zec
+
 def establish_median_temp_dep_linear(models, temps, quantile):
     """
     Calculates the median line of fit

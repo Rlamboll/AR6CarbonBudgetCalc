@@ -17,8 +17,8 @@ if not os.path.exists(results_folder + plot_folder):
 plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
-              "nonCO2pc50_GtCO2_permaf_{}_hdT_1.07NonlinNonCO2_{}_None_recEm209.csv"
-cols = ["Database", "TCRE Distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "NonCO2"]
+              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_None_recEm209.csv"
+cols = ["Database", "TCRE Distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZECsym","NonCO2"]
 results_table = pd.DataFrame(
     columns=cols
 )
@@ -29,28 +29,33 @@ for subfolder in subfolders:
                 for ESF in [7.1]:
                     for Permafrost in [True, False]:
                         for NonCO2 in ["all", "QRW"]:
-                            try:
-                                filename = file_format.format(
-                                        distribution, MAGICC, FaIR, ESF, Permafrost, NonCO2
-                                    )
-                                results = pd.read_csv(
-                                    results_folder + subfolder + filename
-                                )
-                            except FileNotFoundError:
-                                print("Didn't find " + filename)
-                                continue
+                            for zecsd in [0.19]:
+                                for zecasym in [True, False]:
+                                    try:
+                                        filename = file_format.format(
+                                            distribution, MAGICC, FaIR, ESF,
+                                            Permafrost, zecsd, zecasym, NonCO2
+                                        )
+                                        results = pd.read_csv(
+                                            results_folder + subfolder + filename
+                                        )
+                                    except FileNotFoundError:
+                                        print("Didn't find " + filename)
+                                        continue
 
-                            for col, res in [
-                                ("Database", subfolder[:-1].upper()),
-                                ("TCRE Distribution", distribution),
-                                ("MAGICC", MAGICC),
-                                ("FaIR", FaIR),
-                                ("ESF", ESF),
-                                ("Permafrost", Permafrost),
-                                ("NonCO2", NonCO2)
-                            ]:
-                                results[col] = res
-                            results_table = results_table.append(results)
+                                    for col, res in [
+                                        ("Database", subfolder[:-1].upper()),
+                                        ("TCRE Distribution", distribution),
+                                        ("MAGICC", MAGICC),
+                                        ("FaIR", FaIR),
+                                        ("ESF", ESF),
+                                        ("Permafrost", Permafrost),
+                                        ("ZECsd", zecsd),
+                                        ("ZECasym", zecasym),
+                                        ("NonCO2", NonCO2)
+                                    ]:
+                                        results[col] = res
+                                    results_table = results_table.append(results)
 
 if not plot_distn:
     for nonco2 in ["all", "QRW"]:
@@ -79,6 +84,8 @@ if not plot_distn:
             )
             plt.savefig(
                 results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}_nonco2_{nonco2}.png")
+
+
 
 
 if plot_distn:

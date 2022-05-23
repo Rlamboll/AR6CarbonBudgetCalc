@@ -319,3 +319,22 @@ def test_scenario_filter_official_NZ():
         fewer_scenarios.loc[("REMIND_1_5", "World", "Acceptable"),
         magicc_tot_temp_variable], expected_remind_accept
     )
+
+
+def test_dist_of_zec():
+    zec_mean = 0.5
+    zec_sd = 1
+    n_loops = 100000
+    zec_s = distributions.zec_dist(zec_mean, zec_sd, False, n_loops)
+    assert len(zec_s) == n_loops
+    assert type(zec_s) == type(np.array(0))
+    assert np.isclose(zec_s.mean(), zec_mean, atol=1e-2)
+    assert np.isclose(zec_s.std(), zec_sd, atol=1e-2)
+
+
+    zec_a = distributions.zec_dist(zec_mean, zec_sd, True, n_loops)
+    assert len(zec_a) == n_loops
+    assert type(zec_a) == type(np.array(0))
+    assert not any([x < 0 for x in zec_a])
+    assert zec_a.mean() > zec_mean + 0.1
+    assert zec_a.std() < zec_sd
