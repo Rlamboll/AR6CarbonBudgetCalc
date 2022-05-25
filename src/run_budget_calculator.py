@@ -16,50 +16,50 @@ import time
 dT_targets = np.arange(1.1, 2.6, 0.1)
 # The number of loops performed for each temperature. Runs in seconds for ~ 10^6, higher
 # reduces statistical error but takes longer
-n_loops = 1000000
+n_loops = 1000000  # Default: 1000000
 # ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
-zec_mean = 0.0
-zec_sd = 0.19
+zec_mean = 0.0  # Default: 0.0
+zec_sd = 0.19   # Default 0.19
 # Should we interpret the distribution of ZEC in an asymmetric way, i.e. ignore when its
 # negative but include when positive?
-zec_asym = False
+zec_asym = False  # Default: False
 # The temperature difference already seen. (Units: C)
-historical_dT = 1.07
+historical_dT = 1.07  # Default: 1.07
 # The distribution of the TCRE function - either "normal", "lognormal mean match" or
 # "lognormal". The latter two cases are lognormal distributions, in the first
 # case matching the mean and sd of the normal distribution which fits the likelihood,
 # in the second case matching the likelihood limits itself but exhibiting some skew.
-tcre_dist = "normal"
+tcre_dist = "normal"  # Default: "normal"
 # Constant to convert between Pg C and Gt CO2.
 convert_PgC_to_GtCO2 = 3.664
 # The upper and lower bounds of the distribution of TCRE. We use units of degC per GtCO2
 # (TCRE = Transient climate response to cumulative carbon emissions)
-tcre_low = 1.0 / 1000 / convert_PgC_to_GtCO2
-tcre_high = 2.3 / 1000 / convert_PgC_to_GtCO2
+tcre_low = 1.0 / 1000 / convert_PgC_to_GtCO2  # default: 1.0 / 1000 / convert_PgC_to_GtCO2
+tcre_high = 2.3 / 1000 / convert_PgC_to_GtCO2 # 2.3 / 1000 / convert_PgC_to_GtCO2
 # likelihood is the probability that results fit between the low and high value
 likelihood = 0.6827
 # Average CO2 emissions per degree C from temperature-dependent Earth feedback loops.
 # (Units: GtCO2/C)
-earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2
+earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2  # 7.1 * convert_PgC_to_GtCO2
 # Standard dev of CO2 emissions per degree C from temperature-dependent Earth feedback
 # St dev CO2 emissions per degree C from temperature-dependent Earth feedback loops.
 # loops (Units: Gt CO2/C).
-earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2
+earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC_to_GtCO2
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
-recent_emissions = 208.81
+recent_emissions = 208.81  # 208.81
 # We will present the budgets at these probability quantiles. (Switches between easy
 # reading and data for plots)
-allquant = False
-quantiles_to_report = np.arange(0.01, 0.991, 0.01) if allquant else np.array(
+allquant = False  # False
+quantiles_to_report = np.arange(0.01, 0.991, 0.0025) if allquant else np.array(
     [0.17, 0.33, 0.5, 0.66, 0.83])
 
 # Run version should be ar6wg3, sr15ccbox71, or sr15wg1, corresponding to running the
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "ar6wg3"
+runver = "ar6wg3"  # Default: "ar6wg3"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -90,7 +90,7 @@ line_dotting = ["--", "-", "--"]
 # Should we use the median value from quantile regression (True) or the least-squares
 # best fit (False) for the non-CO2 relationship? If instead a number is used, we use
 # that quantile, which must be in quantiles_to_plot.
-use_as_median_non_co2 = True
+use_as_median_non_co2 = True  # default: True
 # Where should we save the results of the figure with trend lines? Not plotted if
 # use_median_non_co2 evaluates as True.
 if use_as_median_non_co2 != True:
@@ -103,7 +103,7 @@ if use_as_median_non_co2 != True:
 # rolling quantiles but does so with weights according to the proximity to the
 # evaluation point (see Silicone documentation for more details). "all" uses the linear
 # trend in the calculation but plots QRW and rolling quantiles too.
-nonlinear_nonco2 = "all"
+nonlinear_nonco2 = "all"  # default: "all"
 if nonlinear_nonco2:
     output_file = output_file + f"NonlinNonCO2_{nonlinear_nonco2}"
 output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
@@ -111,7 +111,7 @@ output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 # database? Options: False (evaluates the normal carbon budget), True (evaluates for
 # each model with a different first string (up to a space or _), or a specific string,
 # in which case we also filter the scenario for that string.
-for_each_model = False
+for_each_model = False  # default: False
 if for_each_model:
     # How many scenarios are required for analysis to be done?
     min_scenarios = 5
@@ -131,7 +131,7 @@ os.makedirs(output_folder, exist_ok=True)
 # temperature.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-peak_version = None
+peak_version = None  # default: None
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
 # We want a list of bools indicating whether to run the code with values from MAGICC,
@@ -295,9 +295,7 @@ for use_permafrost in List_use_permafrost:
         else:
             master_all_non_co2 = magicc_db[[magicc_non_co2_col, magicc_temp_col]]
         if for_each_model:
-            models = list(dict.fromkeys(
-               [re.split(" |_", x)[0] for x in master_all_non_co2.reset_index()["model"]]
-            ))
+            models = list(dict.fromkeys(master_all_non_co2.reset_index()["model"]))
             model_size = pd.Series(index=models)
         else:
             models = [""]
