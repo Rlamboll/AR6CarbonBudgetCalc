@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import re
 import src.distributions_of_inputs as distributions
 import src.budget_calculator_functions as budget_func
 import matplotlib.pyplot as plt
@@ -102,7 +101,9 @@ if use_as_median_non_co2 != True:
 # resulting in the Quantile Rolling Windows approach, which also takes
 # rolling quantiles but does so with weights according to the proximity to the
 # evaluation point (see Silicone documentation for more details). "all" uses the linear
-# trend in the calculation but plots QRW and rolling quantiles too.
+# trend in the calculation but plots QRW too. "interp" draws lines between points and
+# interpolates between them - it is best used in conjunction with specific for_each_model
+# scenarios.
 nonlinear_nonco2 = "all"  # default: "all"
 if nonlinear_nonco2:
     output_file = output_file + f"NonlinNonCO2_{nonlinear_nonco2}"
@@ -114,10 +115,12 @@ output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 for_each_model = False  # default: False
 if for_each_model:
     # How many scenarios are required for analysis to be done?
-    min_scenarios = 5
-    output_folder = output_folder + "for_each_model/"
+    min_scenarios = 3
+    output_folder = output_folder + "each_mod/"
     if type(for_each_model) == str:
         output_folder = output_folder + for_each_model + "/"
+    # We have a real problem with filenames being too long
+    output_file = output_file.replace("budget_", "")
 os.makedirs(output_folder, exist_ok=True)
 
 ###       Information for reading in files used to calculate non-CO2 component:
@@ -285,18 +288,23 @@ for use_permafrost in List_use_permafrost:
                 non_co2_dT_fair.to_csv(fair_file_name, index=False)
             if include_magicc:
                 non_co2_dT_fair = non_co2_dT_fair.set_index("magicc_ind")
-                master_all_non_co2 = pd.DataFrame(index=non_co2_dT_fair.index, columns=[magicc_non_co2_col, magicc_temp_col])
+                master_all_non_co2 = pd.DataFrame(
+                    index=non_co2_dT_fair.index,
+                    columns=[magicc_non_co2_col, magicc_temp_col]
+                )
                 master_all_non_co2[magicc_non_co2_col] = (non_co2_dT_fair[
                     magicc_non_co2_col] + magicc_db.reset_index()[magicc_non_co2_col]) /2
                 master_all_non_co2[magicc_temp_col] = (non_co2_dT_fair[
                      magicc_temp_col] + magicc_db.reset_index()[magicc_temp_col]) / 2
+                master_all_non_co2.index = magicc_db.index
             else:
                 master_all_non_co2 = non_co2_dT_fair[[magicc_non_co2_col, magicc_temp_col]]
+                master_all_non_co2.index = magicc_db.index
         else:
             master_all_non_co2 = magicc_db[[magicc_non_co2_col, magicc_temp_col]]
         if for_each_model:
             models = list(dict.fromkeys(master_all_non_co2.reset_index()["model"]))
-            model_size = pd.Series(index=models)
+            model_size = pd.Series(index=models, dtype=int)
         else:
             models = [""]
         for model in models:
@@ -305,7 +313,7 @@ for use_permafrost in List_use_permafrost:
             budget_quantiles.index.name = "dT_targets"
             if for_each_model:
                 all_non_co2_db = master_all_non_co2.loc[
-                    [re.split(" |_", x)[0] == model for x in master_all_non_co2.index.get_level_values("model")],
+                    [x == model for x in master_all_non_co2.index.get_level_values("model")],
                     :
                 ]
                 if type(for_each_model) == str:
@@ -364,7 +372,6 @@ for use_permafrost in List_use_permafrost:
                         quantile_reg_trends_nonlin, dT_targets - historical_dT,
                         use_as_median_non_co2
                     )
-
                 else:
                     raise ValueError(f"Bad input for nonlinear_nonco2, {nonlinear_nonco2}")
 
@@ -555,7 +562,7 @@ for use_permafrost in List_use_permafrost:
                             "Linear quantile {}".format(quantile_reg_trends.loc[i, "quantile"])
                         )
 
-                if nonlinear_nonco2 in ["rollingQuantiles", "QRW"]:
+                if nonlinear_nonco2 in ["rollingQuantiles", "QRW", "interp"]:
                     for i, q in enumerate(quantile_reg_trends_nonlin.columns[1:]):
                         plt.plot(
                             quantile_reg_trends_nonlin["x"] + historical_dT,
@@ -565,6 +572,8 @@ for use_permafrost in List_use_permafrost:
                         )
                         if nonlinear_nonco2 == "QRW":
                             legend_text.append(f"QRW {q} quantile")
+                        elif nonlinear_nonco2 == "interp":
+                            legend_text.append("Interpolated fit")
                         else:
                             legend_text.append(f"Rolling {q} quantile")
                 if nonlinear_nonco2 == "all":
@@ -576,13 +585,15 @@ for use_permafrost in List_use_permafrost:
                             color="red",
                         )
                         legend_text.append(f"QRW {q} quantile")
+
             plt.legend(legend_text)
-            plt.plot(
-                [temp_plot_limits[0]+0.05, temp_plot_limits[0]+0.05],
-                [non_co2_plot_limits[1] - 0.03 - (tcre_high+tcre_low)/2*100, non_co2_plot_limits[1] - 0.03],
-                lw=10
-            )
-            plt.text(temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575, "Warming from 100 GtCO$_2$")
+            if not for_each_model:
+                plt.plot(
+                    [temp_plot_limits[0]+0.05, temp_plot_limits[0]+0.05],
+                    [non_co2_plot_limits[1] - 0.03 - (tcre_high+tcre_low)/2*100, non_co2_plot_limits[1] - 0.03],
+                    lw=10
+                )
+                plt.text(temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575, "Warming from 100 GtCO$_2$")
             fig.savefig(
                 output_folder + model + output_figure_file.format(
                     include_magicc, include_fair, use_permafrost, zec_sd, zec_asym,
