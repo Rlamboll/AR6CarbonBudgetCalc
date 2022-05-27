@@ -445,6 +445,7 @@ def load_data_from_FaIR(
             print(f"No match found for {i}")
     temp_all_dbs = []
     temp_only_co2_dbs = []
+    offset_temp_all_at_key_time = []
     desired_inds = []
     for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
@@ -499,24 +500,29 @@ def load_data_from_FaIR(
         temp_all_dbs.append(all_temp - all_offset)
 
         only_co2_temp = (
-            pd.DataFrame(open_link_co2_only[var][time_ind_nonco2, ::1]).median().median()
+            pd.DataFrame(open_link_co2_only[var][time_ind_nonco2, ::1]).squeeze().median()
         )
         only_co2_offset = (
             pd.DataFrame(open_link_co2_only[var][offset_inds, ::1]).mean().median()
         )
         temp_only_co2_dbs.append(only_co2_temp - only_co2_offset)
+        offset_temp_all_at_key_time.append(
+            pd.DataFrame(open_link_all[var][time_ind_nonco2, ::1]).squeeze().median() - all_offset
+        )
         assert (
                 all_offset > 0
                 and all_temp > 0
                 and only_co2_temp > 0
                 and only_co2_offset > 0
         ), "Does the database really contain a negative temperature change?"
-    temp_no_co2_dbs = np.array(temp_all_dbs) - temp_only_co2_dbs
-    assert all(x > 0 for x in temp_all_dbs) and all(
-        x > 0 for x in temp_only_co2_dbs
-    ), "Does the database really contain a negative temperature change?"
+    temp_no_co2_dbs = np.array(offset_temp_all_at_key_time) - temp_only_co2_dbs
+    assert all(x > 0 for x in temp_all_dbs), "Does the database really contain a negative temperature change?"
+    if peak_version != "peakNonCO2Warming":
+        assert (all(x > 0 for x in temp_only_co2_dbs)), "Is CO2 really net cooling here?"
     dbs = pd.DataFrame(
-        {magicc_temp_col: temp_all_dbs, magicc_non_co2_col: temp_no_co2_dbs, "magicc_ind": desired_inds},
+        {magicc_temp_col: temp_all_dbs,
+         magicc_non_co2_col: temp_no_co2_dbs,
+         "magicc_ind": desired_inds},
         dtype="float32",
     )
     return dbs

@@ -116,7 +116,7 @@ for_each_model = False  # default: False
 if for_each_model:
     # How many scenarios are required for analysis to be done?
     min_scenarios = 3
-    output_folder = output_folder + "each_mod/"
+    output_folder = output_folder + "each/"
     if type(for_each_model) == str:
         output_folder = output_folder + for_each_model + "/"
     # We have a real problem with filenames being too long
@@ -590,10 +590,14 @@ for use_permafrost in List_use_permafrost:
             if not for_each_model:
                 plt.plot(
                     [temp_plot_limits[0]+0.05, temp_plot_limits[0]+0.05],
-                    [non_co2_plot_limits[1] - 0.03 - (tcre_high+tcre_low)/2*100, non_co2_plot_limits[1] - 0.03],
+                    [non_co2_plot_limits[1] - 0.03 - (tcre_high+tcre_low)/2*100,
+                     non_co2_plot_limits[1] - 0.03],
                     lw=10
                 )
-                plt.text(temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575, "Warming from 100 GtCO$_2$")
+                plt.text(
+                    temp_plot_limits[0]+0.07, non_co2_plot_limits[1] - 0.0575,
+                    "Warming from 100 GtCO$_2$"
+                )
             fig.savefig(
                 output_folder + model + output_figure_file.format(
                     include_magicc, include_fair, use_permafrost, zec_sd, zec_asym,
@@ -623,6 +627,8 @@ for use_permafrost in List_use_permafrost:
                 )
             )
 if for_each_model:
-    model_size.to_csv(output_folder + f"num_scenarios_for_model_{for_each_model}.csv")
+    model_size.to_csv(
+        output_folder + f"num_scenarios_for_model_{for_each_model}{'_' + peak_version if peak_version else ''}.csv"
+    )
 print("Time taken: ", time.time() - t0)
 print("The analysis has completed.")

@@ -204,6 +204,6 @@ if plot_distn:
         sns.set_theme(style="whitegrid")
         sns.violinplot(
             data=use_results, x="TCRE Distribution", hue="ZEC asymmetry",
-            y="Budget", cut=0, split=True, bw=0.3, inner="quartile",
+            y="Budget", cut=0, split=True, bw=0.2, inner="quartile",
         )
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
