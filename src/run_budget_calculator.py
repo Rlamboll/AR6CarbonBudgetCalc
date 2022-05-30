@@ -79,7 +79,7 @@ output_file = ("allquant" if allquant else "") + \
     "budget_{}_magicc_{}_fair_{}_esf_{}pm{}_likeli_{}_nonCO2pc{}_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_{}"
 
 # Output location for figure of peak warming vs non-CO2 warming. More appended later
-output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_zecsd_{}_asym_{}_nonCO2pc{}_nonlin_{}"
+output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{} zecsd_{}_asym_{}_nonCO2pc_{}_nonlin_{}"
 # Quantile fit lines to plot on the temperatures graph.
 # If use_as_median_non_co2 evaluates as True, this must include that quantile (by
 # default 0.5)

@@ -17,7 +17,7 @@ if not os.path.exists(results_folder + plot_folder):
 plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
-              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_None_recEm209.csv"
+              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm209.csv"
 cols = ["Database", "TCRE Distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
 results_table = pd.DataFrame(
     columns=cols
@@ -29,33 +29,35 @@ for subfolder in subfolders:
                 for ESF in [7.1]:
                     for Permafrost in [True, False]:
                         for NonCO2 in ["all", "QRW"]:
-                            for zecsd in ["0.0", "0.19"]:
+                            for zecsd in ["0", "0.19"]:
                                 for zecasym in [True, False]:
-                                    try:
-                                        filename = file_format.format(
-                                            distribution, MAGICC, FaIR, ESF,
-                                            Permafrost, zecsd, zecasym, NonCO2
-                                        )
-                                        results = pd.read_csv(
-                                            results_folder + subfolder + filename
-                                        )
-                                    except FileNotFoundError:
-                                        print("Didn't find " + filename)
-                                        continue
+                                    for peak in ["None", "peakNonCO2Warming", "nonCO2AtPeakTot"]:
+                                        try:
+                                            filename = file_format.format(
+                                                distribution, MAGICC, FaIR, ESF,
+                                                Permafrost, zecsd, zecasym, NonCO2, peak
+                                            )
+                                            results = pd.read_csv(
+                                                results_folder + subfolder + filename
+                                            )
+                                        except FileNotFoundError:
+                                            # print("Didn't find " + filename)
+                                            continue
 
-                                    for col, res in [
-                                        ("Database", subfolder[:-1].upper()),
-                                        ("TCRE Distribution", distribution),
-                                        ("MAGICC", MAGICC),
-                                        ("FaIR", FaIR),
-                                        ("ESF", ESF),
-                                        ("Permafrost", Permafrost),
-                                        ("ZECsd", zecsd),
-                                        ("ZEC asymmetry", zecasym),
-                                        ("NonCO2", NonCO2)
-                                    ]:
-                                        results[col] = res
-                                    results_table = results_table.append(results)
+                                        for col, res in [
+                                            ("Database", subfolder[:-1].upper()),
+                                            ("TCRE Distribution", distribution),
+                                            ("MAGICC", MAGICC),
+                                            ("FaIR", FaIR),
+                                            ("ESF", ESF),
+                                            ("Permafrost", Permafrost),
+                                            ("ZECsd", zecsd),
+                                            ("ZEC asymmetry", zecasym),
+                                            ("NonCO2", NonCO2),
+                                            ("peak", peak)
+                                        ]:
+                                            results[col] = res
+                                        results_table = results_table.append(results)
 results_table = results_table.reset_index(drop=True)
 
 # Put in some defaults
@@ -65,16 +67,19 @@ zec_sd0 = "0.19"
 p0 = False
 as0 = False
 NonCO20 = "all"
+peak0 = "None"
 
 if not plot_distn:
     for nonco2 in ["all", "QRW"]:
         for futwarm in [0.43, 0.93]:
             plt.close()
             use_results = results_table.loc[
-                ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) & (
-                np.isclose(results_table["Future_warming"], futwarm)) & (
-                results_table["TCRE Distribution"]=="normal") & (results_table["Permafrost"] == False) & (
-                results_table["ESF"] == 7.1) & (results_table["NonCO2"] == nonco2),
+                ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) &
+                (np.isclose(results_table["Future_warming"], futwarm)) &
+                (results_table["TCRE Distribution"] == "normal") &
+                (results_table["Permafrost"] == False) &
+                (results_table["ESF"] == 7.1) & (results_table["NonCO2"] == nonco2) &
+                (results_table["peak"] == peak0),
                 :
             ]
             use_results["Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
@@ -107,7 +112,8 @@ if not plot_distn:
             "Permafrost": (results_table["Permafrost"] == p0),
             "ZECsd": (results_table["ZECsd"] == zec_sd0),
             "ZEC asymmetry": (results_table["ZEC asymmetry"] == as0),
-            "NonCO2": (results_table["NonCO2"] == NonCO20)
+            "NonCO2": (results_table["NonCO2"] == NonCO20),
+            "Peak": (results_table["peak"] == peak0)
         })
 
         baseline = results_table.iloc[
@@ -140,7 +146,7 @@ if not plot_distn:
         ZECsd = results_table.iloc[
             [bool(x) for x in (np.product(basebool.iloc[:, :5], axis=1) &
                                np.product(basebool.iloc[:, 6:], axis=1) &
-                               (results_table["ZECsd"] == "0.0"))]
+                               (results_table["ZECsd"] == "0"))]
         ]
         assert len(ZECsd) == 1
         compare.append(
@@ -161,13 +167,43 @@ if not plot_distn:
                  quant_dict[futwarm]].values)[0] ]
         )
         NonCO2 = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, :-2], axis=1) &
-                               (results_table["NonCO2"] == "QRW"))]
+            [
+                bool(x) for x in (np.product(basebool.iloc[:, :-3], axis=1) &
+                (results_table["NonCO2"] == "QRW")) & basebool.iloc[:, -1]
+            ]
         ]
         assert len(NonCO2) == 1
         compare.append(
             [futwarm + hist_warm, quant_dict[futwarm], "NonCO2",
              ((NonCO2[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) /
+              baseline[
+                  quant_dict[futwarm]].values)[0]]
+        )
+        peak_tot = results_table.iloc[
+            [
+                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
+                (results_table["peak"] == "peakNonCO2Warming"))
+            ]
+        ]
+        assert len(peak_tot) == 1
+        compare.append(
+            [futwarm + hist_warm, quant_dict[futwarm], "Max nonCO2 warming",
+             ((peak_tot[quant_dict[futwarm]].values - baseline[
+                 quant_dict[futwarm]].values) /
+              baseline[
+                  quant_dict[futwarm]].values)[0]]
+        )
+        peak_warming = results_table.iloc[
+            [
+                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
+                                  (results_table["peak"] == "nonCO2AtPeakTot"))
+            ]
+        ]
+        assert len(peak_warming) == 1
+        compare.append(
+            [futwarm + hist_warm, quant_dict[futwarm], "NonCO2 at peak warming",
+             ((peak_warming[quant_dict[futwarm]].values - baseline[
+                 quant_dict[futwarm]].values) /
               baseline[
                   quant_dict[futwarm]].values)[0]]
         )
