@@ -110,8 +110,8 @@ if nonlinear_nonco2:
 output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
 # Do we want to calculate this non-CO2 component separately for each model in the
 # database? Options: False (evaluates the normal carbon budget), True (evaluates for
-# each model with a different first string (up to a space or _), or a specific string,
-# in which case we also filter the scenario for that string.
+# each model), or a specific string (e.g. "SSP1"),
+# in which case we also filter the scenario for that string being its first part.
 for_each_model = False  # default: False
 if for_each_model:
     # How many scenarios are required for analysis to be done?
