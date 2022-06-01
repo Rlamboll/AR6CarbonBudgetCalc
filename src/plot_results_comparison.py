@@ -31,7 +31,7 @@ for subfolder in subfolders:
                         for NonCO2 in ["all", "QRW"]:
                             for zecsd in ["0", "0.19"]:
                                 for zecasym in [True, False]:
-                                    for peak in ["None", "peakNonCO2Warming", "nonCO2AtPeakTot"]:
+                                    for peak in ["None", "peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ"]:
                                         try:
                                             filename = file_format.format(
                                                 distribution, MAGICC, FaIR, ESF,
@@ -70,34 +70,34 @@ NonCO20 = "all"
 peak0 = "None"
 
 if not plot_distn:
-    for nonco2 in ["all", "QRW"]:
-        for futwarm in [0.43, 0.93]:
-            plt.close()
-            use_results = results_table.loc[
-                ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) &
-                (np.isclose(results_table["Future_warming"], futwarm)) &
-                (results_table["TCRE Distribution"] == "normal") &
-                (results_table["Permafrost"] == False) &
-                (results_table["ESF"] == 7.1) & (results_table["NonCO2"] == nonco2) &
-                (results_table["peak"] == peak0),
-                :
-            ]
-            use_results["Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
-            use_results["Model"] = "MAGICC"
-            use_results.loc[~use_results["MAGICC"].astype(bool), "Model"] = "FaIR"
-            use_results.loc[use_results["MAGICC"] & use_results["FaIR"], "Model"] = "MAGICC and FaIR"
-            use_results = use_results.melt(
-                var_name="Quantile",
-                value_name="Budget",
-                value_vars=["0.17", "0.33", "0.5", "0.66", "0.83"],
-                id_vars=cols + ["Updated", "Model"]
-            )
+    for futwarm in [0.43, 0.93]:
+        plt.close()
+        use_results = results_table.loc[
+            ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) &
+            (np.isclose(results_table["Future_warming"], futwarm)) &
+            (results_table["TCRE Distribution"] == "normal") &
+            (results_table["Permafrost"] == False) &
+            (results_table["ESF"] == 7.1) &
+            (results_table["peak"] == peak0),
+            :
+        ]
+        use_results["Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
+        use_results["Model"] = "MAGICC"
+        use_results.loc[~use_results["MAGICC"].astype(bool), "Model"] = "FaIR"
+        use_results.loc[use_results["MAGICC"] & use_results["FaIR"], "Model"] = "MAGICC and FaIR"
+        use_results = use_results.melt(
+            var_name="Quantile",
+            value_name="Budget",
+            value_vars=["0.17", "0.33", "0.5", "0.66", "0.83"],
+            id_vars=cols + ["Updated", "Model"]
+        )
+        use_results["NonCO2"] = [x if x!="all" else "linear" for x in use_results["NonCO2"]]
 
-            sns.catplot(
-                data=use_results, x="Model", hue="Updated", y="Budget", kind="box", hue_order=["no", "yes"]
-            )
-            plt.savefig(
-                results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}_nonco2_{nonco2}.png")
+        sns.catplot(
+            data=use_results, x="Model", hue="Updated", y="Budget", kind="box", hue_order=["no", "yes"], col="NonCO2"
+        )
+        plt.savefig(
+            results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}.png")
 
     # Calculate fractional change caused by some modifications
     compare = []
@@ -206,6 +206,21 @@ if not plot_distn:
                  quant_dict[futwarm]].values) /
               baseline[
                   quant_dict[futwarm]].values)[0]]
+        )
+        officialnz_warming = results_table.iloc[
+            [
+                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
+                                  (results_table["peak"] == "officialNZ"))
+            ]
+        ]
+        assert len(officialnz_warming) == 1
+        compare.append(
+            [futwarm + hist_warm, quant_dict[futwarm], "NonCO2 at official NZ",
+             ((officialnz_warming[quant_dict[futwarm]].values - baseline[
+                 quant_dict[futwarm]].values) /
+              baseline[
+                  quant_dict[futwarm]].values)[0]
+             ]
         )
 
     comparedf = pd.DataFrame(

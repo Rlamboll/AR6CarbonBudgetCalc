@@ -4,25 +4,21 @@ import os
 import pandas as pd
 import seaborn as sns
 
-results_folder = "../Output/ar6wg3/"
-subfolders = [
-    "each/SSP1/IMAGE_3.0.1",
-    "each/SSP2/IMAGE_3.0.1",
-    "each/SSP3/IMAGE_3.0.1",
-    "each/SSP4/IMAGE_3.0.1",
-    "each/SSP5/IMAGE_3.0.1",
-    "each/SSP1/IMAGE_3.2",
-    "each/SSP2/IMAGE_3.2",
-    "each/SSP2/MESSAGEix-GLOBIOM_GEI",
-    "each/SSP1/AIM_CGE_2.0",
-    "each/SSP2/MESSAGE-GLOBIOM_1.0",
-    "each/SSP3/MESSAGE-GLOBIOM_1.0",
-    "each/SSP4/AIM_CGE_2.0",
-    "each/SSP5/REMIND-MAgPIE_1.5",
-]
-
+database = "ar6wg3"
+results_folder = f"../Output/{database}/"
+subfolders0 = ["each/SSP1/", "each/SSP2/", "each/SSP3/", "each/SSP4/", "each/SSP5/"]
+startstrings = []
+for fold in subfolders0:
+    all_files = os.listdir(results_folder + fold)
+    valid_files = [
+        i.split("normal")[0] for i in all_files if (i[:4] != "fair") & (i[:6] != "magicc") &
+                                (i[-4:] == ".csv") & (i[:4] != "num_")
+    ]
+    valid_files = list(set([i for i in valid_files if i[-3:] != "log"]))
+    startstrings.append([fold + i for i in valid_files])
+startstrings = [i for j in startstrings for i in j]
 # The results will go into the output folder, in this subfolder:
-plot_folder = "../Output/Plots/each/"
+plot_folder = f"../Output/Plots/each/{database}/"
 if not os.path.exists(results_folder + plot_folder):
     os.makedirs(results_folder + plot_folder)
 
@@ -49,13 +45,13 @@ for col, res in [
 ]:
     results[col] = res
 results_table = results
-for subfolder in subfolders:
+for startstr in startstrings:
     for MAGICC in [magicc0]:
         for FaIR in [fair0]:
             for NonCO2 in ["interp"]:
                 try:
                     filename = file_format.format(
-                        subfolder, MAGICC, FaIR, NonCO2, peak0
+                        startstr, MAGICC, FaIR, NonCO2, peak0
                     )
                     results = pd.read_csv(
                         results_folder + filename
@@ -65,7 +61,7 @@ for subfolder in subfolders:
                     continue
 
                 for col, res in [
-                    ("Database", subfolder),
+                    ("Database", startstr),
                     ("MAGICC", MAGICC),
                     ("FaIR", FaIR),
                     ("NonCO2", NonCO2)
@@ -93,6 +89,17 @@ sns.catplot(
     data=to_plot, x="Scenario", hue="Model", y="Budget", kind="box",
 )
 plt.savefig(plot_folder + "scenario_budgets_catplot.png")
+# Also plot this the other way around
+plt.close()
+sns.catplot(
+    data=to_plot, x="Model", hue="Scenario", y="Budget", kind="box",
+    legend=False
+)
+plt.xticks(rotation=45, horizontalalignment="right")
+plt.tight_layout()
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+plt.tight_layout()
+plt.savefig(plot_folder + "model_then_scenario_budgets_catplot.png")
 
 # Plot different peak/non-CO2 waring of scenario families on the same plot
 magicc_db = pd.read_csv(
