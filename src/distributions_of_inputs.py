@@ -391,18 +391,13 @@ def _read_and_clean_magicc_csv(
     df.columns = [int(col[:4]) for col in df.columns]
     return df
 
-
-def load_data_from_FaIR(
+def preprocess_FaIR_data(
     folder_all,
     folder_co2_only,
     desired_scenarios_db,
-    model_col,
-    scenario_col,
-    magicc_non_co2_col,
-    magicc_temp_col,
-    offset_years,
+    magicc_nonco2_temp_variable,
+    magicc_tot_temp_variable,
     fair_filestr,
-    peak_version
 ):
     import netCDF4
     all_files = os.listdir(folder_all)
@@ -410,7 +405,8 @@ def load_data_from_FaIR(
     assert all_files == CO2_only_files
     # We must find the correspondence between the file systems and the known years of
     # peak emissions
-    desired_scenarios_db["filename"] = fair_filestr + desired_scenarios_db[model_col] + "_" + desired_scenarios_db[scenario_col]
+    desired_scenarios_db["filename"] = fair_filestr + desired_scenarios_db[
+        "model"] + "_" + desired_scenarios_db["scenario"]
     expected_filenames = desired_scenarios_db["filename"]
     assert len(expected_filenames) == len(
         set(expected_filenames)
@@ -422,19 +418,26 @@ def load_data_from_FaIR(
     for i in expected_filenames:
         compare_filename = [
             x for x in all_files if (
-            x[:name_ind].replace(" ", "_").replace("/", "_").replace(",", "_").replace(
-                "_CGE", "").replace(
-                "CDL", "CD-LINKS").replace("-", "_").replace(
-                "SocioeconomicFactorCM", "SFCM"
-                ).replace("TransportERL", "TERL").replace(
-                "WEM", "IEA_World_Energy_Model_2017").replace("REMIND_1.5", "REMIND_1_5").replace(".", "_").replace("+", "_").replace(
-                "(", "_").replace(")", "_").replace("°", "_").replace("$", "_").replace(
-                "__", "_").replace("Npi", "NPI")  == i.replace(" ", "_").replace("/", "_").replace(",", "_").replace(
+                    x[:name_ind].replace(" ", "_").replace("/", "_").replace(",",
+                                                                             "_").replace(
+                        "_CGE", "").replace(
+                        "CDL", "CD-LINKS").replace("-", "_").replace(
+                        "SocioeconomicFactorCM", "SFCM"
+                    ).replace("TransportERL", "TERL").replace(
+                        "WEM", "IEA_World_Energy_Model_2017").replace("REMIND_1.5",
+                                                                      "REMIND_1_5").replace(
+                        ".", "_").replace("+", "_").replace(
+                        "(", "_").replace(")", "_").replace("°", "_").replace("$",
+                                                                              "_").replace(
+                        "__", "_").replace("Npi", "NPI") == i.replace(" ", "_").replace(
+                "/", "_").replace(",", "_").replace(
                 "_CGE", "").replace("CDL", "CD-LINKS").replace("-", "_").replace(
                 "SocioeconomicFactorCM", "SFCM").replace(
                 "TransportERL", "TERL").replace("WEM",
-                "IEA_World_Energy_Model_2017").replace("REMIND_1.5", "REMIND_1_5").replace(".", "_").replace(
-                "+", "_").replace("(", "_").replace("°", "_").replace(")", "_").replace("$", "_").replace("__", "_").replace("Npi", "NPI")
+                                                "IEA_World_Energy_Model_2017").replace(
+                "REMIND_1.5", "REMIND_1_5").replace(".", "_").replace(
+                "+", "_").replace("(", "_").replace("°", "_").replace(")", "_").replace(
+                "$", "_").replace("__", "_").replace("Npi", "NPI")
             )
         ]
         assert len(compare_filename) <= 1, \
@@ -443,6 +446,49 @@ def load_data_from_FaIR(
             filename_dict[i] = compare_filename[0]
         else:
             print(f"No match found for {i}")
+    summary = []
+    desired_quants = [0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9]
+    for orig, file in filename_dict.items():
+        open_link_all = netCDF4.Dataset(folder_all + file)
+        open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
+        if file[-3:] == ".nc":
+            var = "temp"
+            times = open_link_all.variables["time"][:]
+        elif file[-4:] == ".hdf":
+            var = "temperature"
+            zero_year = 1750
+            times = np.arange(
+                zero_year, zero_year + len(open_link_all.variables[var][:])
+            )
+        alltemps = pd.DataFrame(open_link_all[var][:], index=times).quantile(desired_quants, axis=1)
+        noco2temps = (pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(open_link_co2_only[var][:], index=times)).quantile(
+            desired_quants, axis=1)
+        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
+        for col in ["scenario", "region", "model"]:
+            alltemps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
+            noco2temps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
+        alltemps["variable"] = [
+            magicc_tot_temp_variable.replace("50", str(i * 100)) for i in alltemps.index
+        ]
+        noco2temps["variable"] = [
+            magicc_nonco2_temp_variable.replace("50", str(i * 100)) for i in alltemps.index
+        ]
+        summary.append(alltemps)
+        summary.append(noco2temps)
+    fair_df = pd.DataFrame(summary)
+    fair_df.to_csv()
+
+
+
+def load_data_from_FaIR(
+    folder_all,
+    folder_co2_only,
+    desired_scenarios_db,
+    magicc_non_co2_col,
+    magicc_temp_col,
+    offset_years,
+    peak_version
+):
     temp_all_dbs = []
     temp_only_co2_dbs = []
     offset_temp_all_at_key_time = []
