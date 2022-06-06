@@ -127,7 +127,7 @@ def establish_least_sq_temp_dependence(db, temps, non_co2_col, temp_col):
     return pd.Series(index=temps, data=temps * regres[0] + regres[1])
 
 
-def load_data_from_MAGICC(
+def load_data_from_summary(
     non_co2_magicc_file,
     tot_magicc_file,
     yearfile,
@@ -381,7 +381,8 @@ def _read_and_clean_magicc_csv(
 
     df = df.loc[df["variable"] == temp_variable]
     df.set_index(scenario_cols, drop=True, inplace=True)
-    del df["unit"]
+    if "unit" in df.columns:
+        del df["unit"]
     del df["variable"]
     assert all([ind in df.index for ind in temp_df.index]), (
         "There is a mismatch between the emissions year file and the temperature "
@@ -446,7 +447,8 @@ def preprocess_FaIR_data(
             filename_dict[i] = compare_filename[0]
         else:
             print(f"No match found for {i}")
-    summary = []
+    allsummary = []
+    nonco2summary = []
     desired_quants = [0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9]
     for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
@@ -468,107 +470,12 @@ def preprocess_FaIR_data(
             alltemps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
             noco2temps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
         alltemps["variable"] = [
-            magicc_tot_temp_variable.replace("50", str(i * 100)) for i in alltemps.index
+            magicc_tot_temp_variable.replace("50.0", str(i * 100)) for i in alltemps.index
         ]
         noco2temps["variable"] = [
-            magicc_nonco2_temp_variable.replace("50", str(i * 100)) for i in alltemps.index
+            magicc_nonco2_temp_variable.replace("50.0", str(i * 100)) for i in alltemps.index
         ]
-        summary.append(alltemps)
-        summary.append(noco2temps)
-    fair_df = pd.DataFrame(summary)
-    fair_df.to_csv()
+        allsummary.append(alltemps)
+        nonco2summary.append(noco2temps)
+    return (pd.concat(allsummary), pd.concat(nonco2summary))
 
-
-
-def load_data_from_FaIR(
-    folder_all,
-    folder_co2_only,
-    desired_scenarios_db,
-    magicc_non_co2_col,
-    magicc_temp_col,
-    offset_years,
-    peak_version
-):
-    temp_all_dbs = []
-    temp_only_co2_dbs = []
-    offset_temp_all_at_key_time = []
-    desired_inds = []
-    for orig, file in filename_dict.items():
-        open_link_all = netCDF4.Dataset(folder_all + file)
-        open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
-        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
-        desired_inds.append(desired_ind)
-        if file[-3:] == ".nc":
-            var = "temp"
-            offset_inds = np.where(
-                [y in offset_years for y in open_link_all.variables["time"][:]]
-            )[0]
-        elif file[-4:] == ".hdf":
-            var = "temperature"
-            zero_year = 1750
-            offset_inds = np.where(
-                [y in offset_years for y in
-                 range(zero_year, zero_year + open_link_all[var].shape[0])]
-            )[0]
-        else:
-            raise ValueError(f"File {file} in the wrong format")
-        assert len(offset_inds) == len(offset_years), \
-            "We found the wrong number of offset years in the database."
-        selected_date = desired_scenarios_db.loc[desired_ind, "hits_net_zero"]
-        if peak_version == "peakNonCO2Warming":
-            all_temp_ever = (
-                pd.DataFrame(open_link_all[var][:, ::1]).median(axis=1)
-            )
-            only_co2_temp_ever = (
-                pd.DataFrame(open_link_co2_only[var][:, ::1]).median(axis=1)
-            )
-            time_ind_nonco2 = np.where(
-                all_temp_ever-only_co2_temp_ever == max(all_temp_ever-only_co2_temp_ever)
-            )[0]
-        elif peak_version in [None, "officialNZ"]:
-            if file[-3:] == ".nc":
-                time_ind_nonco2 = np.where(open_link_all["time"][:] == selected_date)[0]
-            else:
-                time_ind_nonco2 = int(selected_date - zero_year)
-        elif peak_version == "nonCO2AtPeakTot":
-            time_ind_nonco2 = np.where(
-                pd.DataFrame(open_link_all[var][:]).median(axis=1) == max(pd.DataFrame(
-                    open_link_all[var][:]).median(axis=1))
-            )[0]
-        else:
-            raise ValueError(f"peak version {peak_version} not a valid option")
-        all_temp = (
-            pd.DataFrame(open_link_all[var][:, ::1]).median(axis=1).max()
-        )
-        all_offset = (
-            pd.DataFrame(open_link_all[var][offset_inds, ::1]).mean().median()
-        )
-        temp_all_dbs.append(all_temp - all_offset)
-
-        only_co2_temp = (
-            pd.DataFrame(open_link_co2_only[var][time_ind_nonco2, ::1]).squeeze().median()
-        )
-        only_co2_offset = (
-            pd.DataFrame(open_link_co2_only[var][offset_inds, ::1]).mean().median()
-        )
-        temp_only_co2_dbs.append(only_co2_temp - only_co2_offset)
-        offset_temp_all_at_key_time.append(
-            pd.DataFrame(open_link_all[var][time_ind_nonco2, ::1]).squeeze().median() - all_offset
-        )
-        assert (
-                all_offset > 0
-                and all_temp > 0
-                and only_co2_temp > 0
-                and only_co2_offset > 0
-        ), "Does the database really contain a negative temperature change?"
-    temp_no_co2_dbs = np.array(offset_temp_all_at_key_time) - temp_only_co2_dbs
-    assert all(x > 0 for x in temp_all_dbs), "Does the database really contain a negative temperature change?"
-    if peak_version != "peakNonCO2Warming":
-        assert (all(x > 0 for x in temp_only_co2_dbs)), "Is CO2 really net cooling here?"
-    dbs = pd.DataFrame(
-        {magicc_temp_col: temp_all_dbs,
-         magicc_non_co2_col: temp_no_co2_dbs,
-         "magicc_ind": desired_inds},
-        dtype="float32",
-    )
-    return dbs

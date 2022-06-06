@@ -17,7 +17,7 @@ def test_peaking_strats():
     emissions_file = "emissions_test_file_many_scen.csv"
     offset_years = np.arange(2010, 2020, 1)
     for peak, num_scen in [(None, 2), ("peakNonCO2Warming", 3), ("nonCO2AtPeakTot", 3), ("officialNZ", 2)]:
-        scenarios = distributions.load_data_from_MAGICC(
+        scenarios = distributions.load_data_from_summary(
             magicc_file_for_tests_to_use,
             total_magicc_file,
             emissions_file,
@@ -34,7 +34,7 @@ def test_peaking_strats():
         assert scenarios.shape[0] == 3
         assert len(scenarios[np.isfinite(scenarios["hits_net_zero"])]) == num_scen
         if peak != "officialNZ":
-            scenarios = distributions.load_data_from_MAGICC(
+            scenarios = distributions.load_data_from_summary(
                 magicc_file_for_tests_to_use,
                 total_magicc_file,
                 emissions_file,
@@ -160,7 +160,7 @@ def test_load_data_from_MAGICC():
                    match="The input data contains permafrost information but we have not "
                          "given instructions with what to do with it."
                    ):
-        distributions.load_data_from_MAGICC(
+        distributions.load_data_from_summary(
             magicc_file_for_tests_to_use,
             magicc_file_for_tests_to_use,
             magicc_file_for_tests_to_use,
@@ -183,7 +183,7 @@ def test_magicc_loader_works_with_permafrost():
     emissions_file = "emissions_test_file.csv"
     offset_years = np.arange(2010, 2020, 1)
     # The name of the peak temperature column output
-    permafrost_on = distributions.load_data_from_MAGICC(
+    permafrost_on = distributions.load_data_from_summary(
         magicc_file_for_tests_to_use,
         total_magicc_file,
         emissions_file,
@@ -195,7 +195,7 @@ def test_magicc_loader_works_with_permafrost():
         peak_version=None,
         permafrost=True,
     )
-    permafrost_off = distributions.load_data_from_MAGICC(
+    permafrost_off = distributions.load_data_from_summary(
         magicc_file_for_tests_to_use,
         total_magicc_file,
         emissions_file,
@@ -224,7 +224,7 @@ def test_scenario_filter():
     emissions_file = "emissions_test_file_many_scen.csv"
     offset_years = np.arange(2010, 2020, 1)
     # The name of the peak temperature column output
-    fewer_scenarios = distributions.load_data_from_MAGICC(
+    fewer_scenarios = distributions.load_data_from_summary(
         magicc_file_for_tests_to_use,
         total_magicc_file,
         emissions_file,
@@ -239,7 +239,7 @@ def test_scenario_filter():
         permafrost=True,
     )
 
-    all_scenarios = distributions.load_data_from_MAGICC(
+    all_scenarios = distributions.load_data_from_summary(
         magicc_file_for_tests_to_use,
         total_magicc_file,
         emissions_file,
@@ -273,7 +273,7 @@ def test_scenario_filter_official_NZ():
     emissions_file = "emissions_test_file_many_scen.csv"
     offset_years = np.arange(2010, 2020, 1)
     # The name of the peak temperature column output
-    more_scenarios = distributions.load_data_from_MAGICC(
+    more_scenarios = distributions.load_data_from_summary(
         magicc_file_for_tests_to_use,
         total_magicc_file,
         emissions_file,
@@ -289,7 +289,7 @@ def test_scenario_filter_official_NZ():
         sr15_rename=False,
     )
     with pytest.raises(UnboundLocalError):
-        distributions.load_data_from_MAGICC(
+        distributions.load_data_from_summary(
             magicc_file_for_tests_to_use,
             total_magicc_file,
             emissions_file,

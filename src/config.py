@@ -1,3 +1,5 @@
+
+# ______________________________________________________________________________________
 ## Input values
 # Edit as required - controls run_budget_calculator.
 # ______________________________________________________________________________________
@@ -147,6 +149,10 @@ if runver == "ar6wg3":
     # We also check that the scenarios used in the MAGICC are those that pass the vetting process
     vetted_scen_list_file = input_folder + "ar6_full_metadata_indicators2021_10_14_v3.xlsx"
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
+    # We may search for processed FaIR data here if required
+    fair_processed_file = "../InputData/fair163_ar6/fair_processed_data.csv"
+    # The folders for the unscaled anthropological temperature changes files (many nc
+    # files), skipped if processed data is available
     fair_anthro_folder = "../InputData/fair163_ar6/all_temps/"
     fair_co2_only_folder = "../InputData/fair163_ar6/co2_temps/"
     fair_filestr = "FaIRv1.6.2__"
@@ -158,6 +164,7 @@ elif runver == "sr15ccbox71":
     # We use a compound vetting file
     vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
     vetted_scen_list_file_sheet = "Sheet1"
+    fair_processed_file = "../InputData/fair163_sr15/fair_processed_data.csv"
     fair_anthro_folder = "../InputData/fair163_sr15/SR15_all_temps/"
     fair_co2_only_folder = "../InputData/fair163_sr15/SR15_co2_temps/"
     fair_filestr = "FaIRv1.6.2__"
@@ -169,8 +176,7 @@ elif runver == "sr15wg1":
     input_folder = "../InputData/MAGICCMeinshausenInputs_sr15scen/"
     vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
-    # The folders for the unscaled anthropological temperature changes files (many nc
-    # files)
+    fair_processed_file = "../InputData/fair141_sr15/fair_processed_data.csv"
     fair_anthro_folder = "../InputData/fair141_sr15/FAIR141anthro_unscaled/"
     fair_co2_only_folder = "../InputData/fair141_sr15/FAIR141CO2_unscaled/"
     fair_filestr = "IPCCSR15_"
@@ -207,11 +213,9 @@ magicc_savename = "magicc_nonCO2_temp_{}Percentile".format(
 ) + str(peak_version) + "permaf_{}.csv"
 # If FaIR data is wanted, we will attempt to load it from here, and if not available we
 # will generate it and save that for reuse later
-fair_savename = f"fair_nonCO2_temp_50Percentile_{peak_version}.csv"
+fair_savename = magicc_savename.replace("magicc", "fair")
 # Years over which we set the average temperature to 0.
 # Note that the upper limit of the range is not included in python.
 temp_offset_years = np.arange(2010, 2020, 1)
 # Use permafrost may be True, False or both (iterates over the list)
 List_use_permafrost = [False]
-
-# ______________________________________________________________________________________

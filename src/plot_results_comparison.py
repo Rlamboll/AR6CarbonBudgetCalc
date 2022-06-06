@@ -101,7 +101,8 @@ if not plot_distn:
 
     # Calculate fractional change caused by some modifications
     compare = []
-    quant_dict = {0.43: "0.5", 0.93: "0.66"}
+    abs_comp = []
+    quant_list = ["0.5", "0.66", "0.83"]
     hist_warm = 1.07
     for futwarm in [0.43, 0.93]:
         basebool = pd.DataFrame({
@@ -120,17 +121,21 @@ if not plot_distn:
             [bool(x) for x in np.product(basebool, axis=1)]
         ]
         assert len(baseline) == 1
-        db = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, 1:], axis=1) &
-                               (results_table["Database"] == "SR15CCBOX71"))]
-        ]
-        assert len(db) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "Database", (
-                (db[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) /
-                baseline[quant_dict[futwarm]].values
-            )[0]]
-        )
+        for ind, column, trueval, description in [
+            (0, "Database", "SR15CCBOX71", "Database")
+        ]:
+            db = results_table.iloc[
+                [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1) &
+                    (np.product(basebool.iloc[:, ind + 1:], axis=1)) &
+                    (results_table[column] == trueval))]
+            ]
+            assert len(db) == 1
+            compare.append(
+                [futwarm + hist_warm, quant_list, "Database", (
+                        (db[quant_list].values - baseline[quant_list].values) /
+                        baseline[quant_list].values
+                )[0]]
+            )
         pf = results_table.iloc[
             [bool(x) for x in (np.product(basebool.iloc[:, :4], axis=1) &
                                np.product(basebool.iloc[:, 5:], axis=1) &
@@ -138,9 +143,9 @@ if not plot_distn:
         ]
         assert len(pf) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "Permafrost",
-             ((pf[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) / baseline[
-                 quant_dict[futwarm]].values)[0]
+            [futwarm + hist_warm, quant_list, "Permafrost",
+             ((pf[quant_list].values - baseline[quant_list].values) / baseline[
+                 quant_list].values)[0]
              ]
         )
         ZECsd = results_table.iloc[
@@ -150,10 +155,10 @@ if not plot_distn:
         ]
         assert len(ZECsd) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "ZEC sd",
-             ((ZECsd[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) /
+            [futwarm + hist_warm, quant_list, "ZEC sd",
+             ((ZECsd[quant_list].values - baseline[quant_list].values) /
               baseline[
-                  quant_dict[futwarm]].values)[0]]
+                  quant_list].values)[0]]
         )
         ZECas = results_table.iloc[
             [bool(x) for x in (np.product(basebool.iloc[:, :6], axis=1) &
@@ -162,9 +167,9 @@ if not plot_distn:
         ]
         assert len(ZECas) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "ZEC asymmtetry",
-             ((ZECas[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) / baseline[
-                 quant_dict[futwarm]].values)[0] ]
+            [futwarm + hist_warm, quant_list, "ZEC asymmtetry",
+             ((ZECas[quant_list].values - baseline[quant_list].values) / baseline[
+                 quant_list].values)[0]]
         )
         NonCO2 = results_table.iloc[
             [
@@ -174,10 +179,10 @@ if not plot_distn:
         ]
         assert len(NonCO2) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "NonCO2",
-             ((NonCO2[quant_dict[futwarm]].values - baseline[quant_dict[futwarm]].values) /
+            [futwarm + hist_warm, quant_list, "NonCO2",
+             ((NonCO2[quant_list].values - baseline[quant_list].values) /
               baseline[
-                  quant_dict[futwarm]].values)[0]]
+                  quant_list].values)[0]]
         )
         peak_tot = results_table.iloc[
             [
@@ -187,11 +192,11 @@ if not plot_distn:
         ]
         assert len(peak_tot) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "Max nonCO2 warming",
-             ((peak_tot[quant_dict[futwarm]].values - baseline[
-                 quant_dict[futwarm]].values) /
+            [futwarm + hist_warm, quant_list, "Max nonCO2 warming",
+             ((peak_tot[quant_list].values - baseline[
+                 quant_list].values) /
               baseline[
-                  quant_dict[futwarm]].values)[0]]
+                  quant_list].values)[0]]
         )
         peak_warming = results_table.iloc[
             [
@@ -201,11 +206,11 @@ if not plot_distn:
         ]
         assert len(peak_warming) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "NonCO2 at peak warming",
-             ((peak_warming[quant_dict[futwarm]].values - baseline[
-                 quant_dict[futwarm]].values) /
+            [futwarm + hist_warm, quant_list, "NonCO2 at peak warming",
+             ((peak_warming[quant_list].values - baseline[
+                 quant_list].values) /
               baseline[
-                  quant_dict[futwarm]].values)[0]]
+                  quant_list].values)[0]]
         )
         officialnz_warming = results_table.iloc[
             [
@@ -215,18 +220,22 @@ if not plot_distn:
         ]
         assert len(officialnz_warming) == 1
         compare.append(
-            [futwarm + hist_warm, quant_dict[futwarm], "NonCO2 at official NZ",
-             ((officialnz_warming[quant_dict[futwarm]].values - baseline[
-                 quant_dict[futwarm]].values) /
-              baseline[
-                  quant_dict[futwarm]].values)[0]
+            [futwarm + hist_warm, quant_list, "NonCO2 at original NZ",
+             ((officialnz_warming[quant_list].values - baseline[quant_list].values) /
+              baseline[quant_list].values)[0]
              ]
         )
 
     comparedf = pd.DataFrame(
         compare, columns=["Warming", "Quantile", "Change", "Percentage change"]
     )
+    comparedf = comparedf.explode(["Quantile", "Percentage change"])
     comparedf["Percentage change"] = [round(100 * x, 2) for x in comparedf["Percentage change"]]
+    comparedf = comparedf.pivot(
+        columns="Quantile",
+        index=[c for c in comparedf.columns if c not in ["Quantile", "Percentage change"]],
+        values="Percentage change"
+    ).reset_index()
     comparedf.to_csv(results_folder + "impact_of_changes.csv")
 
 if plot_distn:
