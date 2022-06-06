@@ -1,3 +1,5 @@
+# Main script to run to get values of the carbon budget.
+# Also contains the controls of how the carbon budget is run.
 import os
 
 import numpy as np
@@ -6,15 +8,10 @@ import src.distributions_of_inputs as distributions
 import src.budget_calculator_functions as budget_func
 import matplotlib.pyplot as plt
 import time
-
-#from config import *
-
-## Input values
-# Edit as required - controls run_budget_calculator.
 # ______________________________________________________________________________________
-import numpy as np
-import os
-
+## Input values
+# Edit as required - controls the main calculation.
+# ______________________________________________________________________________________
 # The target temperature changes to achieve. (Units: C)
 dT_targets = np.arange(1.1, 2.6, 0.1)
 # The number of loops performed for each temperature. Runs in seconds for ~ 10^6, higher
@@ -108,7 +105,7 @@ if use_as_median_non_co2 != True:
 # trend in the calculation but plots QRW too. "interp" draws lines between points and
 # interpolates between them - it is best used in conjunction with specific for_each_model
 # scenarios.
-nonlinear_nonco2 = "QRW"  # default: "all"
+nonlinear_nonco2 = "all"  # default: "all"
 if nonlinear_nonco2:
     output_file = output_file + f"NonlinNonCO2_{nonlinear_nonco2}"
 output_all_trends = "TrendLinesWithMagicc_permaf_{}_LinearCO2_{}.pdf"
@@ -296,7 +293,7 @@ for use_permafrost in List_use_permafrost:
                 magicc_tot_temp_variable,
                 temp_offset_years,
                 peak_version,
-                permafrost=use_permafrost,
+                permafrost=None,
                 vetted_scen_list_file=vetted_scen_list_file,
                 vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
                 sr15_rename=sr15_rename,

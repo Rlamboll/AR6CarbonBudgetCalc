@@ -221,11 +221,11 @@ def load_data_from_summary(
         )
     # load temperature data and get it into the same format as the emissions data.
     # Do this for both non-CO2 and CO2-only temperature.
-    non_co2_df = _read_and_clean_magicc_csv(
+    non_co2_df = _read_and_clean_summary_csv(
         scenario_cols, temp_df, magicc_nonco2_temp_variable, non_co2_magicc_file,
         vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
     )
-    tot_df = _read_and_clean_magicc_csv(
+    tot_df = _read_and_clean_summary_csv(
         scenario_cols, temp_df, tot_temp_variable, tot_magicc_file,
         vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
     )
@@ -360,7 +360,7 @@ def _clean_columns_magicc(df, vetted_scens, sr15_rename):
     return df.drop(columns=to_drop_cols)
 
 
-def _read_and_clean_magicc_csv(
+def _read_and_clean_summary_csv(
         scenario_cols, temp_df, temp_variable, warmingfile, vetted_scens, use_permafrost=None, sr15_rename=False,
 ):
     df = pd.read_csv(warmingfile)
@@ -372,7 +372,7 @@ def _read_and_clean_magicc_csv(
             df = df[df.permafrost == use_permafrost]
             df = df.drop(columns="permafrost")
         else:
-            print("Warning: it's unclear whether the MAGICC file is for permafrost or not")
+            print("Warning: it's unclear whether the file is for permafrost or not")
     elif "permafrost" in df.columns:
         raise ValueError(
             "The input data contains permafrost information but we have not "

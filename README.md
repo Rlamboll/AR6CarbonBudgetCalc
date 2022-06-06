@@ -1,8 +1,7 @@
 # Carbon Budget Calculator
 Calculates remaining carbon budget given atmospheric simulation inputs. 
-The workhorse script is `src/run_budget_calculator.py`, with options found in
-`src/config.py`. The config file contains guidance on how to change settings to run 
-different versions of the code. 
+The workhorse script is `src/run_budget_calculator.py`, with options to change it found 
+at the top of the file.  
 
 The calculation is based on the framework in 
 *Estimating and tracking the remaining carbon budget for stringent climate targets*, 
@@ -13,13 +12,13 @@ response to cumulative emissions of CO2 (TCRE, parameters are input for a distri
 which may be either lognormal or normal)
 and unrepresented Earth feedbacks (a linear function of temperature change).   
 
-By changing the value `runver` in the config this code can replicate the values in the 
+By changing the value `runver` this code can replicate the values in the 
 IPCC reports for AR6 WGI and WGIII.  
 With `runver = sr15wg1, zec_sd = 0, recent_emissions=209` this replicates Table 5.8 
 in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias et al, 
 2021) and Table SPM.2 of the Summary for Policymakers (IPCC, 2021) of the IPCC AR6 WGI 
 report. Note that values reported in the report are rounded to the nearest 10 PgC or 50 
-GtCO2, the impact of ZEC standard deviation being tabulated separately. 
+GtCO2 and the impact of ZEC standard deviation are tabulated separately. 
 
 With `runver = ar6wg3, zec_sd = 0, recent_emissions=209` this replicates the carbon 
 budget results in chapter 3 (Riahi et al, 2022) of the IPCC AR6 WG3 report.
