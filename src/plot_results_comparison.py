@@ -13,12 +13,12 @@ if not os.path.exists(results_folder + plot_folder):
     os.makedirs(results_folder + plot_folder)
 
 # If plot_distn is "allquant" we plot the effect of the TCRE distribution on results.
-# If the empty string, we plot the impact
+# If the empty string, we calculate the impact of many different changes
 plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
-              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm209.csv"
-cols = ["Database", "TCRE Distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
+              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm277.csv"
+cols = ["Database", "TCRE distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
 results_table = pd.DataFrame(
     columns=cols
 )
@@ -46,7 +46,7 @@ for subfolder in subfolders:
 
                                         for col, res in [
                                             ("Database", subfolder[:-1].upper()),
-                                            ("TCRE Distribution", distribution),
+                                            ("TCRE distribution", distribution),
                                             ("MAGICC", MAGICC),
                                             ("FaIR", FaIR),
                                             ("ESF", ESF),
@@ -75,7 +75,7 @@ if not plot_distn:
         use_results = results_table.loc[
             ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) &
             (np.isclose(results_table["Future_warming"], futwarm)) &
-            (results_table["TCRE Distribution"] == "normal") &
+            (results_table["TCRE distribution"] == "normal") &
             (results_table["Permafrost"] == False) &
             (results_table["ESF"] == 7.1) &
             (results_table["peak"] == peak0),
@@ -102,11 +102,12 @@ if not plot_distn:
     # Calculate fractional change caused by some modifications
     compare = []
     abs_comp = []
-    quant_list = ["0.5", "0.66", "0.83"]
+    quant_list = ["0.5", "0.66", "0.83", "0.9"]
     hist_warm = 1.07
     for futwarm in [0.43, 0.93]:
         basebool = pd.DataFrame({
             "Database": (results_table["Database"] == d0),
+            "TCRE distribution": (results_table["TCRE distribution"]=="normal"),
             "Future_warming": np.isclose(results_table["Future_warming"], futwarm),
             "SCM": results_table["MAGICC"] & results_table["FaIR"],
             "ESF": (results_table["ESF"] == ESF0),
@@ -122,109 +123,31 @@ if not plot_distn:
         ]
         assert len(baseline) == 1
         for ind, column, trueval, description in [
-            (0, "Database", "SR15CCBOX71", "Database")
+            (0, "Database", ["SR15CCBOX71"], "Database"),
+            (1, "TCRE distribution", ["lognormal"], "TCRE distribution"),
+            (5, "Permafrost", [True], "Permafrost"),
+            (6, "ZECsd", ["0"], "ZEC standard deviation"),
+            (7, "ZEC asymmetry", [True],  "ZEC asymmetry"),
+            (8, "NonCO2", ["QRW"], "NonCO2 linearity to QRW"),
+            (9, "peak", ["peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ"], "Peak version")
         ]:
-            db = results_table.iloc[
-                [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1) &
-                    (np.product(basebool.iloc[:, ind + 1:], axis=1)) &
-                    (results_table[column] == trueval))]
-            ]
-            assert len(db) == 1
-            compare.append(
-                [futwarm + hist_warm, quant_list, "Database", (
-                        (db[quant_list].values - baseline[quant_list].values) /
-                        baseline[quant_list].values
-                )[0]]
-            )
-        pf = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, :4], axis=1) &
-                               np.product(basebool.iloc[:, 5:], axis=1) &
-                               (results_table["Permafrost"] == True))]
-        ]
-        assert len(pf) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "Permafrost",
-             ((pf[quant_list].values - baseline[quant_list].values) / baseline[
-                 quant_list].values)[0]
-             ]
-        )
-        ZECsd = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, :5], axis=1) &
-                               np.product(basebool.iloc[:, 6:], axis=1) &
-                               (results_table["ZECsd"] == "0"))]
-        ]
-        assert len(ZECsd) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "ZEC sd",
-             ((ZECsd[quant_list].values - baseline[quant_list].values) /
-              baseline[
-                  quant_list].values)[0]]
-        )
-        ZECas = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, :6], axis=1) &
-                               np.product(basebool.iloc[:, 7:], axis=1) &
-                               (results_table["ZEC asymmetry"] == True))]
-        ]
-        assert len(ZECas) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "ZEC asymmtetry",
-             ((ZECas[quant_list].values - baseline[quant_list].values) / baseline[
-                 quant_list].values)[0]]
-        )
-        NonCO2 = results_table.iloc[
-            [
-                bool(x) for x in (np.product(basebool.iloc[:, :-3], axis=1) &
-                (results_table["NonCO2"] == "QRW")) & basebool.iloc[:, -1]
-            ]
-        ]
-        assert len(NonCO2) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "NonCO2",
-             ((NonCO2[quant_list].values - baseline[quant_list].values) /
-              baseline[
-                  quant_list].values)[0]]
-        )
-        peak_tot = results_table.iloc[
-            [
-                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
-                (results_table["peak"] == "peakNonCO2Warming"))
-            ]
-        ]
-        assert len(peak_tot) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "Max nonCO2 warming",
-             ((peak_tot[quant_list].values - baseline[
-                 quant_list].values) /
-              baseline[
-                  quant_list].values)[0]]
-        )
-        peak_warming = results_table.iloc[
-            [
-                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
-                                  (results_table["peak"] == "nonCO2AtPeakTot"))
-            ]
-        ]
-        assert len(peak_warming) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "NonCO2 at peak warming",
-             ((peak_warming[quant_list].values - baseline[
-                 quant_list].values) /
-              baseline[
-                  quant_list].values)[0]]
-        )
-        officialnz_warming = results_table.iloc[
-            [
-                bool(x) for x in (np.product(basebool.iloc[:, :-1], axis=1) &
-                                  (results_table["peak"] == "officialNZ"))
-            ]
-        ]
-        assert len(officialnz_warming) == 1
-        compare.append(
-            [futwarm + hist_warm, quant_list, "NonCO2 at original NZ",
-             ((officialnz_warming[quant_list].values - baseline[quant_list].values) /
-              baseline[quant_list].values)[0]
-             ]
-        )
+            for val in trueval:
+                db = results_table.iloc[
+                    [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
+                        (np.product(basebool.iloc[:, ind + 1:], axis=1)).astype(int) &
+                        (results_table[column] == val))]
+                ]
+                assert len(db) == 1, f"Missing scenario with {column} value {trueval}"
+                compare.append(
+                    [futwarm + hist_warm, quant_list, description + " " + str(val), (
+                            (db[quant_list].values - baseline[quant_list].values) /
+                            baseline[quant_list].values
+                    )[0]]
+                )
+                abs_comp.append(
+                    [futwarm + hist_warm, quant_list, description + " " + str(val),
+                            (db[quant_list].values - baseline[quant_list].values)[0]]
+                )
 
     comparedf = pd.DataFrame(
         compare, columns=["Warming", "Quantile", "Change", "Percentage change"]
@@ -236,7 +159,20 @@ if not plot_distn:
         index=[c for c in comparedf.columns if c not in ["Quantile", "Percentage change"]],
         values="Percentage change"
     ).reset_index()
-    comparedf.to_csv(results_folder + "impact_of_changes.csv")
+    comparedf.to_csv(results_folder + "relative_impact_of_changes.csv")
+    abschangecol = "Impact (GtCO2)"
+    abs_comp_df = pd.DataFrame(
+        abs_comp, columns=["Warming", "Quantile", "Change", abschangecol]
+    )
+    abs_comp_df = abs_comp_df.explode(["Quantile", abschangecol])
+    abs_comp_df = abs_comp_df.pivot(
+        columns="Quantile",
+        index=[c for c in abs_comp_df.columns if
+               c not in ["Quantile", abschangecol]],
+        values=abschangecol
+    ).reset_index()
+    abs_comp_df.to_csv(results_folder + "absolute_impact_of_changes.csv")
+
 
 if plot_distn:
     for futwarm in [0.43, 0.93]:
@@ -251,7 +187,7 @@ if plot_distn:
             (results_table["NonCO2"] == NonCO20),
             :
         ]
-        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets"])
+        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets", "peak"])
         use_results.columns = [str(round(float(c), 4)) for c in use_results.columns]
         use_results = use_results.sort_index(axis=1)
 
@@ -263,7 +199,7 @@ if plot_distn:
         )
         sns.set_theme(style="whitegrid")
         sns.violinplot(
-            data=use_results, x="TCRE Distribution", hue="ZEC asymmetry",
-            y="Budget", cut=0, split=True, bw=0.2, inner="quartile",
+            data=use_results, x="TCRE distribution", hue="ZEC asymmetry",
+            y="Budget", cut=0, split=True, bw=0.18, inner="quartile",
         )
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")

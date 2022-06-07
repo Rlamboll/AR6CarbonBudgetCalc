@@ -23,7 +23,7 @@ if not os.path.exists(results_folder + plot_folder):
     os.makedirs(results_folder + plot_folder)
 
 # Files to read will have this basic structure:
-file_format ="{}normal_magicc_{}_fair_{}_esf_7.1pm26.7_likeli_0.6827_nonCO2pc50_GtCO2_permaf_False_zecsd_0.19_asym_False_hdT_1.07NonlinNonCO2_{}_{}_recEm209.csv"
+file_format ="{}normal_magicc_{}_fair_{}_esf_7.1pm26.7_likeli_0.6827_nonCO2pc50_GtCO2_permaf_False_zecsd_0.19_asym_False_hdT_1.07NonlinNonCO2_{}_{}_recEm277.csv"
 cols = ["Database", "NonCO2"]
 historic_warming = 1.07
 results_table = pd.DataFrame(
@@ -106,9 +106,8 @@ magicc_db = pd.read_csv(
     results_folder + "magicc_nonCO2_temp_50PercentilenonCO2AtPeakTotpermaf_False.csv"
 )
 fair_db = pd.read_csv(
-    results_folder + "fair_nonCO2_temp_50Percentile_nonCO2AtPeakTot.csv"
+    results_folder + "fair_nonCO2_temp_50PercentilenonCO2AtPeakTotpermaf_None.csv"
 )
-fair_db = fair_db.set_index("magicc_ind")
 magicc_non_co2_col = (
     "non-co2 warming (rel. to 2010-2019) at peak cumulative emissions co2"
 )

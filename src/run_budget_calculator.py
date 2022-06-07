@@ -302,6 +302,7 @@ for use_permafrost in List_use_permafrost:
             if fair_savename:
                 non_co2_dT_fair.to_csv(output_folder + fair_savename.format("None"), index=False)
             if include_magicc:
+                assert len(non_co2_dT_fair) == len(magicc_db), "FaIR and MAGICC mismatch"
                 master_all_non_co2 = (non_co2_dT_fair + magicc_db) / 2
                 master_all_non_co2 = master_all_non_co2[[magicc_non_co2_col, magicc_temp_col]]
             else:

@@ -477,5 +477,9 @@ def preprocess_FaIR_data(
         ]
         allsummary.append(alltemps)
         nonco2summary.append(noco2temps)
-    return (pd.concat(allsummary), pd.concat(nonco2summary))
+    all_df = pd.concat(allsummary)
+    nonco2_df = pd.concat(nonco2summary)
+    all_df = all_df.loc[:, [c for c in all_df if (type(c) is str) or (c<=2100)]]
+    nonco2_df = nonco2_df.loc[:, [c for c in nonco2_df if (type(c) is str) or (c<=2100)]]
+    return (all_df, nonco2_df)
 
