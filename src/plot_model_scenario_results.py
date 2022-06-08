@@ -19,8 +19,8 @@ for fold in subfolders0:
 startstrings = [i for j in startstrings for i in j]
 # The results will go into the output folder, in this subfolder:
 plot_folder = f"../Output/Plots/each/{database}/"
-if not os.path.exists(results_folder + plot_folder):
-    os.makedirs(results_folder + plot_folder)
+if not os.path.exists(plot_folder):
+    os.makedirs(plot_folder)
 
 # Files to read will have this basic structure:
 file_format ="{}normal_magicc_{}_fair_{}_esf_7.1pm26.7_likeli_0.6827_nonCO2pc50_GtCO2_permaf_False_zecsd_0.19_asym_False_hdT_1.07NonlinNonCO2_{}_{}_recEm277.csv"
@@ -76,7 +76,7 @@ results_table["Scenario"] = [x[5: 9] if len(x) > 3 else "All AR6" for x in resul
 results_table["Model"] = [x[10:] if len(x) > 3 else "All AR6" for x in results_table["Database"]]
 
 temp = 1.5
-quantiles = ["0.17", "0.33","0.5", "0.66", "0.83"]
+quantiles = ["0.1", "0.17", "0.33","0.5", "0.66", "0.83", "0.9"]
 to_plot = results_table.melt(
     var_name="Quantile", value_name="Budget", value_vars=quantiles, id_vars=["dT_targets", "Scenario", "Model"]
 )

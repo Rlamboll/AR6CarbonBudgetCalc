@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 
 results_folder = "../Output/"
@@ -68,6 +69,7 @@ p0 = False
 as0 = False
 NonCO20 = "all"
 peak0 = "None"
+ZECas0 = False
 
 if not plot_distn:
     for futwarm in [0.43, 0.93]:
@@ -78,7 +80,8 @@ if not plot_distn:
             (results_table["TCRE distribution"] == "normal") &
             (results_table["Permafrost"] == False) &
             (results_table["ESF"] == 7.1) &
-            (results_table["peak"] == peak0),
+            (results_table["peak"] == peak0) &
+            (results_table["ZEC asymmetry"] == ZECas0),
             :
         ]
         use_results["Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
@@ -88,7 +91,7 @@ if not plot_distn:
         use_results = use_results.melt(
             var_name="Quantile",
             value_name="Budget",
-            value_vars=["0.17", "0.33", "0.5", "0.66", "0.83"],
+            value_vars=["0.1", "0.17", "0.33", "0.5", "0.66", "0.83", "0.9"],
             id_vars=cols + ["Updated", "Model"]
         )
         use_results["NonCO2"] = [x if x!="all" else "linear" for x in use_results["NonCO2"]]
