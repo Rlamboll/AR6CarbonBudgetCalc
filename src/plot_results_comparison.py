@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
-import plotly.graph_objects as go
 import seaborn as sns
 
 results_folder = "../Output/"
