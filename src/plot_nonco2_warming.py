@@ -8,8 +8,8 @@ from src.distributions_of_inputs import _read_and_clean_summary_csv, _clean_colu
 # Plots the distribution of total temperatures and non-CO2 temperatures
 
 # load temp trajectories
-fair_df_all = pd.read_csv("../InputData/fair163_ar6/fair_processed_data_alltemp.csv")
-fair_df_non = pd.read_csv("../InputData/fair163_ar6/fair_processed_data_nonco2temp.csv")
+fair_file_all = "../InputData/fair163_ar6/fair_processed_data_alltemp.csv"
+fair_file_non = "../InputData/fair163_ar6/fair_processed_data_nonco2temp.csv"
 magicc_file_all = "../InputData/MAGICCAR6emWG3scen/job-20211019-ar6-nonco2_Raw-GSAT.csv"
 magicc_file_non = "../InputData/MAGICCAR6emWG3scen/job-20211019-ar6-nonco2_Raw-GSAT-Non-CO2.csv"
 
@@ -19,6 +19,15 @@ nzyearcol = "year of netzero CO2 emissions"
 emissions = pd.read_csv(
     "../InputData/MAGICCAR6emWG3scen/job-20211019-ar6-nonco2_Emissions-CO2.csv"
 )
+vetted_scen_list_file = "../InputData/MAGICCAR6emWG3scen/" + "ar6_full_metadata_indicators2021_10_14_v3.xlsx"
+vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
+nzyearcol = "year of netzero CO2 emissions"
+vetted_scens = pd.read_excel(
+    vetted_scen_list_file, sheet_name=vetted_scen_list_file_sheet
+).loc[:, ["model", "scenario", "exclude", nzyearcol]]
+vetted_scens["region"] = "World"
+scenario_cols = ["model", "region", "scenario"]
+vetted_scens = vetted_scens.set_index(scenario_cols)
 magicc_non_co2_col = (
     "non-co2 warming (rel. to 2010-2019) at peak cumulative emissions co2"
 )
@@ -29,11 +38,10 @@ empty_cols = [
     if ((yeardf[col].isnull().all()) or (col == "permafrost"))
 ]
 yeardf.drop(empty_cols, axis=1, inplace=True)
-scenario_cols = ["model", "region", "scenario"]
 del yeardf["unit"]
 total_co2 = yeardf.groupby(scenario_cols).sum()
 total_co2.columns = [int(col[:4]) for col in total_co2.columns]
-zero_years = pd.Series(index=total_co2.index)
+zero_years = pd.Series(index=total_co2.index, dtype=np.float64)
 for index, row in total_co2.iterrows():
     try:
         change_sign = np.where(row < 0)[0][0]
@@ -45,16 +53,19 @@ for index, row in total_co2.iterrows():
     except IndexError:
         zero_years[index] = np.nan
 
-cols = ["model", "region", "scenario"]
 quant = 0.5
 magiccquantname = "AR6 climate diagnostics|Raw Surface Temperature (GSAT)|{}MAGICCv7.5.3|50.0th Percentile"
-fair_df_non = fair_df_non[fair_df_non["Unnamed: 0"]==quant]
-fair_df_all = fair_df_all[fair_df_all["Unnamed: 0"]==quant]
-fair_df_non = fair_df_non.set_index(cols)
-fair_df_all = fair_df_all.set_index(cols)
 temp_df = pd.DataFrame(
-            index=total_co2.index, columns=[magicc_temp_col, magicc_non_co2_col], dtype=np.float64
-        )
+    index=total_co2.index, columns=[magicc_temp_col, magicc_non_co2_col], dtype=np.float64
+)
+fair_df_non = _read_and_clean_summary_csv(
+    scenario_cols, temp_df, magiccquantname.format("Non-CO2|"), fair_file_non,
+    None, use_permafrost=None, sr15_rename=False,
+)
+fair_df_all = _read_and_clean_summary_csv(
+    scenario_cols, temp_df, magiccquantname.format(""), fair_file_all,
+    None, use_permafrost=None, sr15_rename=False,
+)
 magicc_df_non = _read_and_clean_summary_csv(
         scenario_cols, temp_df, magiccquantname.format("Non-CO2|"), magicc_file_non,
     None, use_permafrost=False, sr15_rename=False,
@@ -63,81 +74,86 @@ magicc_df_all = _read_and_clean_summary_csv(
         scenario_cols, temp_df, magiccquantname.format(""), magicc_file_all,
     None, use_permafrost=False, sr15_rename=False,
 )
-future_dates = range(2020, 2101)
+future_dates = range(2015, 2101)
 
 # Plot data
-hsv = plt.get_cmap('nipy_spectral')
-imageinds = magicc_df_all.index[np.where(magicc_df_all.index.get_level_values("model") == "IMAGE 3.0.1")[0]]
+hsv = plt.get_cmap('Blues_r')
+imageinds = magicc_df_all.index
 plotnum = len(imageinds)
-colors = hsv(np.linspace(0, 1.0, plotnum))
-for i in range(plotnum):
-    if np.isfinite(zero_years.loc[imageinds[i]]):
-        plt.plot(
-            magicc_df_all.loc[imageinds[i], future_dates],
-            magicc_df_non.loc[imageinds[i], future_dates],
-            alpha=0.5, color=colors[i]
-        )
-        plt.scatter(
-            magicc_df_all.loc[imageinds[i], int(zero_years.loc[imageinds[i]])],
-            magicc_df_non.loc[imageinds[i], int(zero_years.loc[imageinds[i]])],
-            marker="o", alpha=0.65, color=colors[i], s=60
-        )
-    else:
-        plt.plot(
-            magicc_df_all.loc[imageinds[i], future_dates],
-            magicc_df_non.loc[imageinds[i], future_dates],
-            linewidth=0.3, alpha=0.45, color=colors[i]
-        )
-plt.xlim([1.25, 2.5])
-plt.ylim([0.2, 0.6])
-plt.xlabel("Total warming (C)")
-plt.ylabel("Non-CO$_2$ warming (C)")
-plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_fair.png")
-plt.close()
-future_dates = [str(c) for c in future_dates]
-for i in range(plotnum):
-    if np.isfinite(zero_years.loc[imageinds[i]]):
-        plt.plot(
-            fair_df_all.loc[imageinds[i], future_dates],
-            fair_df_non.loc[imageinds[i], future_dates],
-            alpha=0.5, color=colors[i]
-        )
-        plt.scatter(
-            fair_df_all.loc[imageinds[i], int(zero_years.loc[imageinds[i]])],
-            fair_df_non.loc[imageinds[i], int(zero_years.loc[imageinds[i]])],
-            marker="o", alpha=0.65, color=colors[i], s=60
-        )
-    else:
-        plt.plot(
-            fair_df_all.loc[imageinds[i], future_dates],
-            fair_df_non.loc[imageinds[i], future_dates],
-            linewidth=0.3, alpha=0.45, color=colors[i]
-        )
-plt.xlim([1.25, 2.5])
-plt.ylim([0.1, 0.6])
-plt.xlabel("Total warming (C)")
-plt.ylabel("Non-CO$_2$ warming (C)")
-plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_fair.png")
+chosen_inds = [
+    ("IMAGE 3.2", "World", "SSP1_SPA1_19I_D"),
+    ("AIM/CGE 2.0", "World", "SSP1-26"),
+    ("MESSAGE-GLOBIOM 1.0", "World", "SSP2-26"),
+    ("GCAM 5.3", "World", "R_MAC_95_n8")
+]
+assert len([i for i in chosen_inds if i not in imageinds]) == 0
+colors = hsv(np.linspace(0, 1.0, len(chosen_inds) + 2))
 
-for i in range(30):
-    if np.isfinite(zero_years.iloc[i]):
-        plt.plot(
-            magicc_df_all.loc[:, future_dates].iloc[i],
-            magicc_df_non.loc[:, future_dates].iloc[i]
-        )
-        plt.scatter(
-            magicc_df_all.loc[:, str(int(zero_years.iloc[i]))].iloc[i],
-            magicc_df_non.loc[:, str(int(zero_years.iloc[i]))].iloc[i],
-            marker="o", alpha=0.5
-        )
-    else:
-        # To keep colors aligned.
-        plt.plot(
-            fair_df_all.loc[:, future_dates].iloc[i],
-            fair_df_non.loc[:, future_dates].iloc[i],
-            linewidth=0.4
-        )
-        plt.scatter([], [])
-plt.xlim([1.25, 2.5])
-plt.ylim([0, 0.6])
+
+def plot_temps(magicc_df_all, magicc_df_non, future_dates):
+    global i
+    for i in range(plotnum):
+        if imageinds[i] not in chosen_inds:
+            plt.plot(
+                magicc_df_all.loc[imageinds[i], future_dates],
+                magicc_df_non.loc[imageinds[i], future_dates],
+                linewidth=0.3, alpha=0.15, color="darkorange"
+            )
+    first = True
+    for (i, ci) in enumerate(chosen_inds):
+        if np.isfinite(zero_years.loc[ci]):
+            plt.plot(
+                magicc_df_all.loc[ci, future_dates],
+                magicc_df_non.loc[ci, future_dates],
+                alpha=0.95, color=colors[i], zorder=2,
+            )
+            plt.scatter(
+                magicc_df_all.loc[ci, int(zero_years.loc[ci])],
+                magicc_df_non.loc[ci, int(zero_years.loc[ci])],
+                marker="*", color=colors[i], s=60,
+                zorder=2.5, alpha=0.65,
+                label="Actual net zero" if first else None
+            )
+            plt.scatter(
+                magicc_df_all.loc[ci, int(vetted_scens.loc[ci, nzyearcol])],
+                magicc_df_non.loc[ci, int(vetted_scens.loc[ci, nzyearcol])],
+                marker="x", color=colors[i], s=60,
+                zorder=2.5, alpha=0.65,
+                label="Original net zero" if first else None
+            )
+            maxtind = np.where(
+                magicc_df_all.loc[ci, :] == max(magicc_df_all.loc[ci, :]))[0][0]
+            plt.scatter(
+                magicc_df_all.loc[ci].iloc[maxtind],
+                magicc_df_non.loc[ci].iloc[maxtind],
+                marker=">", color=colors[i], s=60,
+                zorder=2.5, alpha=0.65,
+                label="Max total temp" if first else None
+            )
+            maxtind = np.where(
+                magicc_df_non.loc[ci, :] == max(magicc_df_non.loc[ci, :]))[0][0]
+            plt.scatter(
+                magicc_df_all.loc[ci].iloc[maxtind],
+                magicc_df_non.loc[ci].iloc[maxtind],
+                marker="^", color=colors[i], s=60,
+                zorder=2.5, alpha=0.65,
+                label="Max non-CO$_2$ temp" if first else None
+            )
+            first = False
+        else:
+            print(f"No value for scenario {ci}")
+    plt.xlabel("Total warming (C)")
+    plt.ylabel("Non-CO$_2$ warming (C)")
+    plt.legend()
+
+plot_temps(magicc_df_all, magicc_df_non, future_dates)
+plt.xlim([1.15, 2.5])
+plt.ylim([0.2, 0.6])
 plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_magicc.png")
+plt.close()
+
+# Repeat for fair
+plot_temps(fair_df_all, fair_df_non, future_dates)
+plt.xlim([1.11, 2.5])
+plt.ylim([0.15, 0.6])
+plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_fair.png")
