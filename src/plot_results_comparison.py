@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+import waterfall_chart as waterfall
 import seaborn as sns
 
 results_folder = "../Output/"
@@ -17,7 +18,7 @@ if not os.path.exists(results_folder + plot_folder):
 plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
-              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm277.csv"
+              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm{}.csv"
 cols = ["Database", "TCRE distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
 results_table = pd.DataFrame(
     columns=cols
@@ -36,32 +37,34 @@ for subfolder in subfolders:
                                         "officialNZ", "nonCO2AtPeakTotIfNZ",
                                         "nonCO2AtPeakTotIfOfNZ", "nonCO2AtPeakTotMagicc"
                                     ]:
-                                        try:
-                                            filename = file_format.format(
-                                                distribution, MAGICC, FaIR, ESF,
-                                                Permafrost, zecsd, zecasym, NonCO2, peak
-                                            )
-                                            results = pd.read_csv(
-                                                results_folder + subfolder + filename
-                                            )
-                                        except FileNotFoundError:
-                                            # print("Didn't find " + filename)
-                                            continue
+                                        for recem in ["277", "209"]:
+                                            try:
+                                                filename = file_format.format(
+                                                    distribution, MAGICC, FaIR, ESF,
+                                                    Permafrost, zecsd, zecasym, NonCO2, peak, recem
+                                                )
+                                                results = pd.read_csv(
+                                                    results_folder + subfolder + filename
+                                                )
+                                            except FileNotFoundError:
+                                                # print("Didn't find " + filename)
+                                                continue
 
-                                        for col, res in [
-                                            ("Database", subfolder[:-1].upper()),
-                                            ("TCRE distribution", distribution),
-                                            ("MAGICC", MAGICC),
-                                            ("FaIR", FaIR),
-                                            ("ESF", ESF),
-                                            ("Permafrost", Permafrost),
-                                            ("ZECsd", zecsd),
-                                            ("ZEC asymmetry", zecasym),
-                                            ("NonCO2", NonCO2),
-                                            ("peak", peak)
-                                        ]:
-                                            results[col] = res
-                                        results_table = results_table.append(results)
+                                            for col, res in [
+                                                ("Database", subfolder[:-1].upper()),
+                                                ("TCRE distribution", distribution),
+                                                ("MAGICC", MAGICC),
+                                                ("FaIR", FaIR),
+                                                ("ESF", ESF),
+                                                ("Permafrost", Permafrost),
+                                                ("ZECsd", zecsd),
+                                                ("ZEC asymmetry", zecasym),
+                                                ("NonCO2", NonCO2),
+                                                ("peak", peak),
+                                                ("recem", recem)
+                                            ]:
+                                                results[col] = res
+                                            results_table = results_table.append(results)
 results_table = results_table.reset_index(drop=True)
 
 # Put in some defaults
@@ -73,6 +76,8 @@ as0 = False
 NonCO20 = "all"
 peak0 = "None"
 ZECas0 = False
+recem0 = "277"
+recemorig = "209"
 
 if not plot_distn:
     for futwarm in [0.43, 0.93]:
@@ -84,11 +89,12 @@ if not plot_distn:
             (results_table["Permafrost"] == False) &
             (results_table["ESF"] == 7.1) &
             (results_table["peak"] == peak0) &
-            (results_table["ZEC asymmetry"] == ZECas0),
+            (results_table["ZEC asymmetry"] == ZECas0) &
+            (results_table["recem"] == recem0),
             :
-        ]
-        use_results["Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
-        use_results["Model"] = "MAGICC"
+        ].copy()
+        use_results.loc[:, "Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
+        use_results.loc[:, "Model"] = "MAGICC"
         use_results.loc[~use_results["MAGICC"].astype(bool), "Model"] = "FaIR"
         use_results.loc[use_results["MAGICC"] & use_results["FaIR"], "Model"] = "MAGICC and FaIR"
         use_results = use_results.melt(
@@ -121,7 +127,8 @@ if not plot_distn:
             "ZECsd": (results_table["ZECsd"] == zec_sd0),
             "ZEC asymmetry": (results_table["ZEC asymmetry"] == as0),
             "NonCO2": (results_table["NonCO2"] == NonCO20),
-            "Peak": (results_table["peak"] == peak0)
+            "Peak": (results_table["peak"] == peak0),
+            "recem": (results_table["recem"] == recem0),
         })
 
         baseline = results_table.iloc[
@@ -137,8 +144,9 @@ if not plot_distn:
             (8, "NonCO2", ["QRW"], "NonCO2 linearity to QRW"),
             (9, "peak", [
                 "peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ",
-                "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakTotIfOfNZ", "nonCO2AtPeakTotMagicc"
-            ], "Peak version")
+                "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakTotMagicc"
+            ], "Peak version"),
+            (10, "recem", ["209"], "Recent emissions")
         ]:
             for val in trueval:
                 db = results_table.iloc[
@@ -181,6 +189,71 @@ if not plot_distn:
         values=abschangecol
     ).reset_index()
     abs_comp_df.to_csv(results_folder + "absolute_impact_of_changes.csv")
+    # Plot contribution of different factors
+
+    for (futwarm, quant_want) in [(0.43, "0.5"), (0.93, "0.66")]:
+        origbool = basebool = pd.DataFrame({
+            "TCRE distribution": (results_table["TCRE distribution"]=="normal"),
+            "Future_warming": np.isclose(results_table["Future_warming"], futwarm),
+            "MAGICC": results_table["MAGICC"],
+            "ESF": (results_table["ESF"] == ESF0),
+            "Permafrost": (results_table["Permafrost"] == p0),
+            "ZECsd": (results_table["ZECsd"] == zec_sd0),
+            "ZEC asymmetry": (results_table["ZEC asymmetry"] == as0),
+            "Peak": (results_table["peak"] == peak0),
+            "NonCO2": (results_table["NonCO2"] == NonCO20),
+            "Database": (results_table["Database"] == "SR15WG1"),
+            "FaIR": (results_table["FaIR"] == False),
+            "recem": (results_table["recem"]==recemorig)
+        })
+
+        origline = results_table.iloc[
+            [bool(x) for x in np.product(origbool, axis=1)]
+        ]
+
+        yvals = [origline[quant_want].iloc[0]]
+        xvals = ["AR6 WG1"]
+        # Update recent emissions
+        ind = 11
+        db = results_table.iloc[
+            [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
+                               (results_table["recem"] == recem0))]
+        ]
+        assert len(db) == 1
+        plt.close()
+        yvals.append(db[quant_want].iloc[0] - origline[quant_want].iloc[0])
+        xvals.append("Recent emissions")
+        dbold = db.copy()
+        # Use FaIR
+        for (ind, condition, xlabel) in [
+            (10, (results_table["FaIR"]==True), "Include FaIR"),
+            (9, (results_table["Database"] == "SR15CCBOX71") & (results_table["FaIR"] == True), "Update emulators"),
+            (9, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True), "Use AR6 DB"),
+            (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
+                (results_table["NonCO2"] == "QRW"), "Use QRW"),
+            (7, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakTotMagicc"), "Change non-CO$_2$ time"),
+        ]:
+            db = results_table.iloc[
+                [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
+               (results_table["recem"] == recem0) & condition)]
+            ]
+            assert len(db) == 1
+            yvals.append(db[quant_want].iloc[0] - dbold[quant_want].iloc[0])
+            xvals.append(xlabel)
+            dbold = db.copy()
+
+        waterfall.plot(
+            xvals,
+            yvals,
+            green_color="cornflowerblue",
+            blue_color="blue",
+            net_label="Updated budget"
+        )
+        plt.xticks(rotation=45, horizontalalignment="right")
+        plt.ylabel("Total budget (GtCO$_2$)")
+        plt.tight_layout()
+        plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}.png")
 
 
 if plot_distn:
@@ -212,3 +285,4 @@ if plot_distn:
             y="Budget", cut=0, split=True, bw=0.18, inner="quartile",
         )
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
+
