@@ -162,6 +162,10 @@ def load_data_from_summary(
         irrespective of emissions peak.
         If "nonCO2AtPeakTot", computes the non-CO2 component at the time of peak total
         temperature.
+        If "nonCO2AtPeakTotIfNZ", computes the non-CO2 component at the time of peak
+        total temperature provided the pathway reaches net zero.
+        If "nonCO2AtPeakTotIfOfNZ", computes the non-CO2 component at the time of peak
+        total temperature provided the pathway reached net zero before harmonisation.
     :param permafrost: Boolean indicating whether or not the data should include
         permafrost corrections. If none (default) all data is accepted from the files
         read. Otherwise the files must have a permafrost column for this to filter.
@@ -176,15 +180,25 @@ def load_data_from_summary(
     yeardf = pd.read_csv(yearfile, index_col=0)
     # Drop empty columns from the dataframe and calculate the year the emissions go to
     # zero
-    if vetted_scen_list_file:
+    if vetted_scen_list_file is not None:
         nzyearcol = "year of netzero CO2 emissions"
-        vetted_scens = pd.read_excel(
-            vetted_scen_list_file, sheet_name=vetted_scen_list_file_sheet
-        ).loc[:, ["model", "scenario", "exclude", nzyearcol]]
-        assert all(vetted_scens.exclude == 0)
-        if peak_version and (peak_version == "officialNZ"):
-            vetted_scens_nzyears = vetted_scens
-        vetted_scens = vetted_scens.drop(["exclude", nzyearcol], axis=1)
+        if type(vetted_scen_list_file) == str:
+            vetted_scens = pd.read_excel(
+                vetted_scen_list_file, sheet_name=vetted_scen_list_file_sheet
+            ).loc[:, ["model", "scenario", "exclude", nzyearcol]]
+            assert all(vetted_scens.exclude == 0)
+            if peak_version and (peak_version in ["officialNZ", "nonCO2AtPeakTotIfOfNZ"]):
+                vetted_scens_nzyears = vetted_scens
+            vetted_scens = vetted_scens.drop(["exclude", nzyearcol], axis=1)
+        else:
+            vetted_scens = vetted_scen_list_file.reset_index()
+            vetted_scens[nzyearcol] = vetted_scens["hits_net_zero"]
+            vetted_scens = vetted_scens.loc[:, ["model", "scenario", nzyearcol]]
+            if peak_version and (
+                    peak_version in ["officialNZ", "nonCO2AtPeakTotIfOfNZ"]):
+                vetted_scens_nzyears = vetted_scens
+            vetted_scens = vetted_scens.drop([nzyearcol], axis=1)
+
     else:
         vetted_scens = None
 
@@ -199,7 +213,7 @@ def load_data_from_summary(
 
     del yeardf["unit"]
     total_co2 = yeardf.groupby(scenario_cols).sum()
-    if not peak_version:
+    if (not peak_version) or (peak_version == "nonCO2AtPeakTotIfNZ"):
         total_co2.columns = [int(col[:4]) for col in total_co2.columns]
         zero_years = pd.Series(index=total_co2.index)
         for index, row in total_co2.iterrows():
@@ -247,15 +261,23 @@ def load_data_from_summary(
         elif peak_version == "peakNonCO2Warming":
             temp = max(non_co2_df.loc[ind])
             temp_df.loc[ind, "hits_net_zero"] = non_co2_df.columns[np.argmax(non_co2_df.loc[ind])]
-        elif peak_version == "nonCO2AtPeakTot":
+        elif peak_version in [
+            "nonCO2AtPeakTot", "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakTotIfOfNZ"
+        ]:
             max_year_ind = np.where(max(tot_df.loc[ind]) == tot_df.loc[ind])[0]
             temp = non_co2_df.loc[ind].iloc[max_year_ind].values[0]
-            temp_df.loc[ind, "hits_net_zero"] = tot_df.columns[max_year_ind]
+            if peak_version == "nonCO2AtPeakTot":
+                temp_df.loc[ind, "hits_net_zero"] = tot_df.columns[max_year_ind]
+            elif peak_version == "nonCO2AtPeakTotIfNZ":
+                temp_df.loc[ind, "hits_net_zero"] = zero_years.loc[ind]
+            elif peak_version == "nonCO2AtPeakTotIfOfNZ":
+                temp_df.loc[ind, "hits_net_zero"] = vetted_scens_nzyears.loc[
+                    (vetted_scens_nzyears.model == ind[0]) & (vetted_scens_nzyears.scenario == ind[2])
+                ][nzyearcol].iloc[0]
         elif peak_version == "officialNZ":
             max_year = vetted_scens_nzyears.loc[
                 (vetted_scens_nzyears.model == ind[0]) & (vetted_scens_nzyears.scenario == ind[2])
             ][nzyearcol].iloc[0]
-
             if not np.isnan(max_year):
                 temp = non_co2_df.loc[ind, max_year]
                 temp_df.loc[ind, "hits_net_zero"] = max_year

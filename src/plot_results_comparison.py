@@ -31,7 +31,11 @@ for subfolder in subfolders:
                         for NonCO2 in ["all", "QRW"]:
                             for zecsd in ["0", "0.19"]:
                                 for zecasym in [True, False]:
-                                    for peak in ["None", "peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ"]:
+                                    for peak in [
+                                        "None", "peakNonCO2Warming", "nonCO2AtPeakTot",
+                                        "officialNZ", "nonCO2AtPeakTotIfNZ",
+                                        "nonCO2AtPeakTotIfOfNZ", "nonCO2AtPeakTotMagicc"
+                                    ]:
                                         try:
                                             filename = file_format.format(
                                                 distribution, MAGICC, FaIR, ESF,
@@ -131,7 +135,10 @@ if not plot_distn:
             (6, "ZECsd", ["0"], "ZEC standard deviation"),
             (7, "ZEC asymmetry", [True],  "ZEC asymmetry"),
             (8, "NonCO2", ["QRW"], "NonCO2 linearity to QRW"),
-            (9, "peak", ["peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ"], "Peak version")
+            (9, "peak", [
+                "peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ",
+                "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakTotIfOfNZ", "nonCO2AtPeakTotMagicc"
+            ], "Peak version")
         ]:
             for val in trueval:
                 db = results_table.iloc[

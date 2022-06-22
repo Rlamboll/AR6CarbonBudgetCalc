@@ -133,6 +133,14 @@ os.makedirs(output_folder, exist_ok=True)
 # irrespective of emissions peak.
 # If "nonCO2AtPeakTot", computes the non-CO2 component at the time of peak total
 # temperature.
+# If "nonCO2AtPeakTotIfNZ", computes the non-CO2 component at the time of peak total
+# temperature but ignores scenarios that do not reach net zero.
+# If "nonCO2AtPeakTotIfOfNZ, computes the non-CO2 component at the time of peak total
+# temperature but ignores scenarios that did not reach net zero prior to
+#  harmonisation.
+# If "nonCO2AtPeakTotMagicc", computes the non-CO2 component at the time of peak total
+# temperature in MAGICC, provided that scenarios reach net zero, and the same warming is
+# applied to FaIR.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
 peak_version = None  # default: None
@@ -236,7 +244,7 @@ for use_permafrost in List_use_permafrost:
     else:
         non_co2_magicc_file = non_co2_magicc_file_no_permafrost
         tot_magicc_file = tot_magicc_file_nopermafrost
-
+    magicc_peak_version = peak_version if peak_version != "nonCO2AtPeakTotMagicc" else "nonCO2AtPeakTotIfNZ"
     magicc_db_full = distributions.load_data_from_summary(
         non_co2_magicc_file,
         tot_magicc_file,
@@ -246,7 +254,7 @@ for use_permafrost in List_use_permafrost:
         magicc_nonco2_temp_variable,
         magicc_tot_temp_variable,
         temp_offset_years,
-        peak_version,
+        magicc_peak_version,
         permafrost=use_permafrost,
         vetted_scen_list_file=vetted_scen_list_file,
         vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
@@ -283,6 +291,12 @@ for use_permafrost in List_use_permafrost:
                 )
                 all_fair_db.to_csv(fair_folder + fair_processed_file.format("alltemp"))
                 nonco2_fair_db.to_csv(fair_folder + fair_processed_file.format("nonco2temp"))
+            if peak_version != "nonCO2AtPeakTotMagicc":
+                fair_peak_version = peak_version
+                fair_vetting_file = vetted_scen_list_file
+            else:
+                fair_peak_version = "officialNZ"
+                fair_vetting_file = magicc_db_full
             non_co2_dT_fair = distributions.load_data_from_summary(
                 fair_folder + fair_processed_file.format("nonco2temp"),
                 fair_folder + fair_processed_file.format("alltemp"),
@@ -292,9 +306,9 @@ for use_permafrost in List_use_permafrost:
                 magicc_nonco2_temp_variable,
                 magicc_tot_temp_variable,
                 temp_offset_years,
-                peak_version,
+                fair_peak_version,
                 permafrost=None,
-                vetted_scen_list_file=vetted_scen_list_file,
+                vetted_scen_list_file=fair_vetting_file,
                 vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
                 sr15_rename=sr15_rename,
             )
