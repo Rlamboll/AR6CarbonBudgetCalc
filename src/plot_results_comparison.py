@@ -136,41 +136,41 @@ if not plot_distn:
         ]
         assert len(baseline) == 1
         for ind, column, trueval, description in [
-            (0, "Database", ["SR15CCBOX71"], "Database"),
-            (1, "TCRE distribution", ["lognormal"], "TCRE distribution"),
-            (5, "Permafrost", [True], "Permafrost"),
-            (6, "ZECsd", ["0"], "ZEC standard deviation"),
-            (7, "ZEC asymmetry", [True],  "ZEC asymmetry"),
-            (8, "NonCO2", ["QRW"], "NonCO2 linearity to QRW"),
-            (9, "peak", [
-                "peakNonCO2Warming", "nonCO2AtPeakTot", "officialNZ",
-                "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakTotMagicc"
-            ], "Peak version"),
-            (10, "recem", ["209"], "Recent emissions")
+            (0, "Database",       "SR15CCBOX71", "Use SR1.5 database"),
+            (1, "TCRE distribution", "lognormal", "Lognormal TCRE distribution"),
+            (5, "Permafrost",       True, "Include permafrost in MAGICC results"),
+            (6, "ZECsd",            "0", "ZEC standard deviation 0"),
+            (7, "ZEC asymmetry",    True, "ZEC only impacts if positive"),
+            (8, "NonCO2",           "QRW", "Use QRW for non-CO$_2$ fit"),
+            (9, "peak",             "peakNonCO2Warming", "Maximum Non-CO2 warming"),
+            (9, "peak",             "nonCO2AtPeakTot", "Non-CO$_2$ warming at peak total temp"),
+            (9, "peak",             "officialNZ", "Non-CO$_2$ warming at preharmonised NZ"),
+            (9, "peak",             "nonCO2AtPeakTotIfNZ", "Non-CO$_2$ warming at peak total, only NZ scenarios"),
+            (9, "peak",             "nonCO2AtPeakTotMagicc", "Non-CO$_2$ warming at peak total in MAGICC, only NZ scenarios"),
+            (10, "recem",           "209", "Recent emissions")
         ]:
-            for val in trueval:
-                db = results_table.iloc[
-                    [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
-                        (np.product(basebool.iloc[:, ind + 1:], axis=1)).astype(int) &
-                        (results_table[column] == val))]
-                ]
-                assert len(db) == 1, f"Missing scenario with {column} value {trueval}"
-                compare.append(
-                    [futwarm + hist_warm, quant_list, description + " " + str(val), (
-                            (db[quant_list].values - baseline[quant_list].values) /
-                            baseline[quant_list].values
-                    )[0]]
-                )
-                abs_comp.append(
-                    [futwarm + hist_warm, quant_list, description + " " + str(val),
-                            (db[quant_list].values - baseline[quant_list].values)[0]]
-                )
+            db = results_table.iloc[
+                [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
+                    (np.product(basebool.iloc[:, ind + 1:], axis=1)).astype(int) &
+                    (results_table[column] == trueval))]
+            ]
+            assert len(db) == 1, f"Missing scenario with {column} value {trueval}"
+            compare.append(
+                [futwarm + hist_warm, quant_list, description, (
+                        (db[quant_list].values - baseline[quant_list].values) /
+                        baseline[quant_list].values
+                )[0]]
+            )
+            abs_comp.append(
+                [futwarm + hist_warm, quant_list, description,
+                (db[quant_list].values - baseline[quant_list].values)[0]]
+            )
 
     comparedf = pd.DataFrame(
         compare, columns=["Warming", "Quantile", "Change", "Percentage change"]
     )
     comparedf = comparedf.explode(["Quantile", "Percentage change"])
-    comparedf["Percentage change"] = [round(100 * x, 2) for x in comparedf["Percentage change"]]
+    comparedf["Percentage change"] = [round(100 * x, 1) for x in comparedf["Percentage change"]]
     comparedf = comparedf.pivot(
         columns="Quantile",
         index=[c for c in comparedf.columns if c not in ["Quantile", "Percentage change"]],
@@ -182,6 +182,7 @@ if not plot_distn:
         abs_comp, columns=["Warming", "Quantile", "Change", abschangecol]
     )
     abs_comp_df = abs_comp_df.explode(["Quantile", abschangecol])
+    abs_comp_df["Impact (GtCO2)"] = [round(x, 0) for x in abs_comp_df["Impact (GtCO2)"]]
     abs_comp_df = abs_comp_df.pivot(
         columns="Quantile",
         index=[c for c in abs_comp_df.columns if

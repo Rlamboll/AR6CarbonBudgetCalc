@@ -72,8 +72,9 @@ results_table = results_table.reset_index(drop=True)
 if not os.path.exists(plot_folder):
     os.makedirs(plot_folder)
 results_table.to_csv(plot_folder + "model_specific_summary.csv")
-results_table["Scenario"] = [x[5: 9] if len(x) > 3 else "All AR6" for x in results_table["Database"]]
-results_table["Model"] = [x[10:] if len(x) > 3 else "All AR6" for x in results_table["Database"]]
+databasestr = "AR6" if (database == "ar6wg3") else "SR1.5"
+results_table["Scenario"] = [x[5: 9] if len(x) > 3 else f"All {databasestr}" for x in results_table["Database"]]
+results_table["Model"] = [x[10:] if len(x) > 3 else f"All {databasestr}" for x in results_table["Database"]]
 
 temp = 1.5
 quantiles = ["0.1", "0.17", "0.33","0.5", "0.66", "0.83", "0.9"]
