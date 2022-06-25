@@ -110,6 +110,24 @@ if not plot_distn:
         )
         plt.savefig(
             results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}.png")
+        for quant in ["0.5", "0.66"]:
+            estPostupdate = use_results["Budget"][
+                (use_results["Updated"] == "yes") &
+                (use_results["Model"] == "MAGICC and FaIR") &
+                (use_results["NonCO2"] == "linear") &
+                (use_results["Quantile"] == quant)
+            ]
+            assert len(estPostupdate) == 1
+            estPostupdate = estPostupdate.iloc[0]
+            estPreupdate = use_results["Budget"][
+                (use_results["Updated"] == "no") &
+                (use_results["Model"] == "MAGICC and FaIR") &
+                (use_results["NonCO2"] == "linear") &
+                (use_results["Quantile"] == quant)
+            ]
+            assert len(estPreupdate) == 1
+            estPreupdate = estPreupdate.iloc[0]
+            print(f"Effect of updates on {futwarm} budget at p {quant} combined estimate: {(estPostupdate - estPreupdate)/estPreupdate}")
 
     # Calculate fractional change caused by some modifications
     compare = []
@@ -203,8 +221,8 @@ if not plot_distn:
             "ZEC asymmetry": (results_table["ZEC asymmetry"] == as0),
             "Peak": (results_table["peak"] == peak0),
             "NonCO2": (results_table["NonCO2"] == NonCO20),
-            "Database": (results_table["Database"] == "SR15WG1"),
             "FaIR": (results_table["FaIR"] == False),
+            "Database": (results_table["Database"] == "SR15WG1"),
             "recem": (results_table["recem"]==recemorig)
         })
 
@@ -227,8 +245,8 @@ if not plot_distn:
         dbold = db.copy()
         # Use FaIR
         for (ind, condition, xlabel) in [
-            (10, (results_table["FaIR"]==True), "Include FaIR"),
-            (9, (results_table["Database"] == "SR15CCBOX71") & (results_table["FaIR"] == True), "Update emulators"),
+            (10, (results_table["Database"] == "SR15CCBOX71"), "Update MAGICC"),
+            (9, (results_table["Database"] == "SR15CCBOX71") & (results_table["FaIR"] == True), "Include FaIR"),
             (9, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True), "Use AR6 DB"),
             (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW"), "Use QRW"),
@@ -267,10 +285,11 @@ if plot_distn:
             np.isclose(results_table["Future_warming"], futwarm) &
             (results_table["MAGICC"]) & (results_table["FaIR"] == False) &
             (results_table["ZECsd"]==zec_sd0) &
-            (results_table["NonCO2"] == NonCO20),
+            (results_table["NonCO2"] == NonCO20) &
+            (results_table["recem"] == recem0),
             :
         ]
-        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets", "peak"])
+        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets", "peak", "recem"])
         use_results.columns = [str(round(float(c), 4)) for c in use_results.columns]
         use_results = use_results.sort_index(axis=1)
 
