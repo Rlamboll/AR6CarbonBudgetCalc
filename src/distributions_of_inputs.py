@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats
 import scipy.interpolate
-
+# Functions called by the workhorse script relating to distributions of warming
 
 def tcre_distribution(low, high, likelihood, n_return, tcre_dist):
     """

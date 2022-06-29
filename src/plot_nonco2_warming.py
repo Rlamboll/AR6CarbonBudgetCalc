@@ -5,7 +5,7 @@ import scipy.interpolate
 
 from src.distributions_of_inputs import _read_and_clean_summary_csv, _clean_columns_magicc
 
-# Plots the distribution of total temperatures and non-CO2 temperatures
+# Plots the distribution of total temperatures and non-CO2 temperatures over time
 
 # load temp trajectories
 fair_file_all = "../InputData/fair163_ar6/fair_processed_data_alltemp.csv"

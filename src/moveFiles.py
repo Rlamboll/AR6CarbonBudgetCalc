@@ -1,5 +1,5 @@
 import os
-## Not of general use, used to move around files
+## Not of general use, used to move around setup files
 
 folder = "../InputData/fair163_sr15/SR15_all_temps/"
 

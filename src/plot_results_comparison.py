@@ -283,7 +283,7 @@ if plot_distn:
             (results_table["ESF"] == ESF0) &
             (results_table["Permafrost"] == p0) &
             np.isclose(results_table["Future_warming"], futwarm) &
-            (results_table["MAGICC"]) & (results_table["FaIR"] == False) &
+            (results_table["MAGICC"]) & (results_table["FaIR"]) &
             (results_table["ZECsd"]==zec_sd0) &
             (results_table["NonCO2"] == NonCO20) &
             (results_table["recem"] == recem0),

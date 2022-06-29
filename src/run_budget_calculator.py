@@ -16,7 +16,7 @@ import time
 dT_targets = np.arange(1.1, 2.6, 0.1)
 # The number of loops performed for each temperature. Runs in tens of seconds for
 # ~ 10^6, higher reduces statistical error but takes longer
-n_loops = 1000000  # Default: 1000000
+n_loops = 10000000  # Default: 1000000
 # ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
 zec_mean = 0.0  # Default: 0.0
