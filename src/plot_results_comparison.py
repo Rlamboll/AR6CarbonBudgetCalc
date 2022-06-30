@@ -210,15 +210,15 @@ if not plot_distn:
     abs_comp_df.to_csv(results_folder + "absolute_impact_of_changes.csv")
     # Plot contribution of different factors
 
-    for (futwarm, quant_want) in [(0.43, "0.5"), (0.93, "0.66")]:
+    for (futwarm, quant_want) in [(0.43, "0.5"), (0.93, "0.5")]:
         origbool = basebool = pd.DataFrame({
-            "TCRE distribution": (results_table["TCRE distribution"]=="normal"),
             "Future_warming": np.isclose(results_table["Future_warming"], futwarm),
+            "TCRE distribution": (results_table["TCRE distribution"]=="normal"),
             "MAGICC": results_table["MAGICC"],
             "ESF": (results_table["ESF"] == ESF0),
-            "Permafrost": (results_table["Permafrost"] == p0),
             "ZECsd": (results_table["ZECsd"] == zec_sd0),
             "ZEC asymmetry": (results_table["ZEC asymmetry"] == as0),
+            "Permafrost": (results_table["Permafrost"] == p0),
             "Peak": (results_table["peak"] == peak0),
             "NonCO2": (results_table["NonCO2"] == NonCO20),
             "FaIR": (results_table["FaIR"] == False),
@@ -231,7 +231,12 @@ if not plot_distn:
         ]
 
         yvals = [origline[quant_want].iloc[0]]
-        xvals = ["AR6 WG1"]
+        xvals = ["AR6 WGI"]
+        quanthigh = "0.33"
+        quantlow = "0.66"
+        errorlow = [yvals[0] - origline[quantlow].iloc[0]]
+        errorhigh = [origline[quanthigh].iloc[0]-yvals[0]]
+        ycent = yvals.copy()
         # Update recent emissions
         ind = 11
         db = results_table.iloc[
@@ -242,22 +247,32 @@ if not plot_distn:
         plt.close()
         yvals.append(db[quant_want].iloc[0] - origline[quant_want].iloc[0])
         xvals.append("Recent emissions")
+        ycent.append(db[quant_want].iloc[0])
+        errorhigh.append(db[quanthigh].iloc[0] - db[quant_want].iloc[0])
+        errorlow.append(db[quant_want].iloc[0] - db[quantlow].iloc[0])
         dbold = db.copy()
         # Use FaIR
         for (ind, condition, xlabel) in [
             (10, (results_table["Database"] == "SR15CCBOX71"), "Update MAGICC"),
-            (9, (results_table["Database"] == "SR15CCBOX71") & (results_table["FaIR"] == True), "Include FaIR"),
-            (9, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True), "Use AR6 DB"),
+            (10, (results_table["Database"] == "AR6WG3"), "Use AR6 DB"),
+            (9, (results_table["Database"] == "SR15CCBOX71") & (
+                    results_table["FaIR"] == True), "Include FaIR"),
             (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW"), "Use QRW"),
             (7, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakTotMagicc"), "Change non-CO$_2$ time"),
+            (6, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakTotMagicc") &
+                (results_table["Permafrost"] == True), "Permafrost in MAGICC")
         ]:
             db = results_table.iloc[
                 [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
                (results_table["recem"] == recem0) & condition)]
             ]
             assert len(db) == 1
+            ycent.append(db[quant_want].iloc[0])
+            errorhigh.append(db[quanthigh].iloc[0] - db[quant_want].iloc[0])
+            errorlow.append(db[quant_want].iloc[0] - db[quantlow].iloc[0])
             yvals.append(db[quant_want].iloc[0] - dbold[quant_want].iloc[0])
             xvals.append(xlabel)
             dbold = db.copy()
@@ -265,14 +280,44 @@ if not plot_distn:
         waterfall.plot(
             xvals,
             yvals,
+            red_color="orangered",
             green_color="cornflowerblue",
-            blue_color="blue",
+            blue_color="mediumblue",
             net_label="Updated budget"
         )
         plt.xticks(rotation=45, horizontalalignment="right")
-        plt.ylabel("Total budget (GtCO$_2$)")
+        plt.ylabel("Remaining budget (GtCO$_2$)")
+        #plt.errorbar(xvals, ycent, yerr=np.array([errorlow, errorhigh]), fmt='.', alpha=0.5, c="lightblue",)
+        plt.errorbar(xvals[0], ycent[0], yerr=np.array([[errorlow[0]], [errorhigh[0]]]), fmt='.', c="lightblue", alpha=0.5)
+        plt.errorbar(xvals, ycent, yerr=np.array([errorlow, errorhigh]), fmt='.',
+                     alpha=0.0)
+        plt.errorbar(["Updated budget"], ycent[-1],
+                     yerr=np.array([[errorlow[-1]], [errorhigh[-1]]]), fmt='.',
+                     c="lightblue", alpha=0.5)
+
+        plt.xticks()
+        plt.ylim([0, ycent[0] + errorhigh[0] + 20])
         plt.tight_layout()
-        plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}.png")
+        plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}_errorbars_outer.png")
+        plt.close()
+
+    initialbug = results_table.iloc[
+        [bool(x) for x in np.product(basebool.iloc[:, 1:], axis=1).astype(int)]
+    ]
+    finalbug = results_table.iloc[
+        [bool(x) for x in (np.product(basebool.iloc[:, 1:ind], axis=1).astype(int) &
+        (results_table["recem"] == recem0) & condition)]
+    ]
+    assert len(finalbug) == len(initialbug)
+    plt.plot(hist_warm + initialbug["Future_warming"], initialbug["0.5"], color="mediumblue")
+    plt.plot(hist_warm + finalbug["Future_warming"], finalbug["0.5"], color="orangered")
+    plt.fill_between(hist_warm + initialbug["Future_warming"], initialbug["0.33"], initialbug["0.66"], alpha=0.25, color="mediumblue")
+    plt.fill_between(hist_warm + finalbug["Future_warming"], finalbug["0.33"],
+                     finalbug["0.66"], alpha=0.25, color="orangered")
+    plt.xlabel("Warming (C)")
+    plt.ylabel("Remaining budget (GtCO$_2$)")
+    plt.legend(["WGI report", "Current estimate"], loc="upper left")
+    plt.savefig(f"../Output/Plots/compare_updated_and_orig_budget_over_temps.png")
 
 
 if plot_distn:

@@ -84,7 +84,7 @@ output_figure_file = "non_co2_cont_to_peak_warming_magicc_{}_fair_{}_permaf_{} z
 # Quantile fit lines to plot on the temperatures graph.
 # If use_as_median_non_co2 evaluates as True, this must include that quantile (by
 # default 0.5)
-quantiles_to_plot = [0.05, 0.5, 0.95]
+quantiles_to_plot = [0.17, 0.5, 0.83]
 # How should we dot these lines? This list must be as long as quantiles_to_plot.
 line_dotting = ["--", "-", "--"]
 # Should we use the median value from quantile regression (True) or the least-squares
@@ -491,10 +491,10 @@ for use_permafrost in List_use_permafrost:
                 return limits
 
             # 0.10 is chosen for the fringes for aesthetic reasons
-            temp_plot_limits = add_fringe(temp_plot_limits, 0.10)
-            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.10)
+            temp_plot_limits = add_fringe(temp_plot_limits, 0.105)
+            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.105)
             plt.close()
-            fig = plt.figure(figsize=(12, 7))
+            fig = plt.figure(figsize=(6.4*1.2, 4.8*1.2))
             ax = fig.add_subplot(111)
             legend_text = []
             if for_each_model:
@@ -526,7 +526,7 @@ for use_permafrost in List_use_permafrost:
                 equation_of_fit = np.polyfit(x, y, 1)
                 all_fit_lines.append(equation_of_fit)
                 plt.plot(
-                    np.unique(x), np.poly1d(equation_of_fit)(np.unique(x)), color="black"
+                    np.unique(x), np.poly1d(equation_of_fit)(np.unique(x)), color="dimgrey"
                 )
                 legend_text.append("line of best fit")
                 # Write the equation
@@ -577,7 +577,7 @@ for use_permafrost in List_use_permafrost:
                                 quantile_reg_trends["b"][i] * (maxT - historical_dT) + quantile_reg_trends["a"][i],
                             ),
                             ls=line_dotting[i],
-                            color="black",
+                            color="dimgrey", alpha=0.8
                         )
                         legend_text.append(
                             "Linear quantile {}".format(quantile_reg_trends.loc[i, "quantile"])
@@ -603,7 +603,7 @@ for use_permafrost in List_use_permafrost:
                             quantile_reg_trends_nonlin_qrw["x"] + historical_dT,
                             quantile_reg_trends_nonlin_qrw[q],
                             ls=line_dotting[i],
-                            color="red",
+                            color="darkorange",
                         )
                         legend_text.append(f"QRW {q} quantile")
 

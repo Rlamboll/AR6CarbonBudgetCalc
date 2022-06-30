@@ -4,6 +4,9 @@ import os
 import pandas as pd
 import seaborn as sns
 
+# Plots the results of running the model-and-SSP specific budgets.
+
+# Database should be the foldername where files are stored, e.g. ar6wg3 or sr15ccbox71
 database = "ar6wg3"
 results_folder = f"../Output/{database}/"
 subfolders0 = ["each/SSP1/", "each/SSP2/", "each/SSP3/", "each/SSP4/", "each/SSP5/"]
@@ -138,3 +141,11 @@ plt.legend(legends)
 plt.xlabel("Peak total warming (C)")
 plt.ylabel("Non-CO$_2$ warming relative to 2010-2019 (C)")
 plt.savefig(plot_folder + "IMAGE_3.0.1_ssps.png")
+
+# Calculate the standard deviation and range of the distribution of values
+for futwarm, wantquant in [(0.43, "0.5"), (0.93, "0.66")]:
+    valid_inds = np.isclose(results_table["Future_warming"], futwarm) & (results_table["Database"] != "AR6")
+    rangeofvals = max(results_table.loc[valid_inds, wantquant]) - min(results_table.loc[valid_inds, wantquant])
+    sdofvals = np.std(results_table.loc[valid_inds, wantquant], ddof=1)
+    minval = min(results_table.loc[valid_inds, wantquant])
+    print(f"For future warming {futwarm} quantile {wantquant} range is {rangeofvals} and stdev {sdofvals}, min is {minval}")
