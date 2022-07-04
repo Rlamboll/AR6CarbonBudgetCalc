@@ -491,8 +491,8 @@ for use_permafrost in List_use_permafrost:
                 return limits
 
             # 0.10 is chosen for the fringes for aesthetic reasons
-            temp_plot_limits = add_fringe(temp_plot_limits, 0.105)
-            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.105)
+            temp_plot_limits = add_fringe(temp_plot_limits, 0.11)
+            non_co2_plot_limits = add_fringe(non_co2_plot_limits, 0.11)
             plt.close()
             fig = plt.figure(figsize=(6.4*1.2, 4.8*1.2))
             ax = fig.add_subplot(111)

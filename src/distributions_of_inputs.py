@@ -422,6 +422,16 @@ def preprocess_FaIR_data(
     magicc_tot_temp_variable,
     fair_filestr,
 ):
+    """
+
+    :param folder_all: String denoting the folder containing the total warming runs. Ends in "/"
+    :param folder_co2_only: String denoting the folder containing the CO2-only warming runs. Ends in "/"
+    :param desired_scenarios_db: The MAGICC database with the model/scenario runs that we want.
+    :param magicc_nonco2_temp_variable: String, name of the variable for non-CO2 warming to output
+    :param magicc_tot_temp_variable: String, ame of the variable for total warming to output
+    :param fair_filestr: String that all FaIR filenames for runs start with
+    :return:
+    """
     import netCDF4
     all_files = os.listdir(folder_all)
     CO2_only_files = os.listdir(folder_co2_only)
