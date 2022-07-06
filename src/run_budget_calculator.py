@@ -8,6 +8,7 @@ import src.distributions_of_inputs as distributions
 import src.budget_calculator_functions as budget_func
 import matplotlib.pyplot as plt
 import time
+import waterfall_chart as waterfall
 # ______________________________________________________________________________________
 ## Input values
 # Edit as required - controls the main calculation.
@@ -49,6 +50,9 @@ earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
 recent_emissions = 277  # Default: 277
+# The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
+# correlated.
+recent_emissions_uncertainty = 1.8 * 8
 # We will present the budgets at these probability quantiles. (Switch is provided to
 # go between easy reading and data for plots)
 allquant = False  # False
@@ -123,6 +127,10 @@ if for_each_model:
     # We have a real problem with filenames being too long
     output_file = output_file.replace("budget_", "")
 os.makedirs(output_folder, exist_ok=True)
+# if not None, do a waterfall plot of the contributions of each component to the budget.
+# If not none, should have {} for magicc, Fair, peak, temp, recem, ZEC, permafrost. E.g.
+# "waterfall_contributions_MAGICC_{}_FaIR_{}_peak{}_temp{}_recem{}_ZEC{}_pf{}.png"
+waterfall_plot = None  # default: None
 
 ###       Information for reading in files used to calculate non-CO2 component:
 
@@ -647,6 +655,76 @@ for use_permafrost in List_use_permafrost:
                     use_permafrost, nonlinear_nonco2
                 )
             )
+        if waterfall_plot:
+            for temp in [1.5, 2.0]:
+                plt.close()
+                TCRE = (tcre_high + tcre_low) / 2
+                xvals = [
+                    "Historical Warming", "Recent emissions warming",
+                    "Earth Systems Feedback",
+                    "Non-CO$_2$ warming", "Zero Emissions Commitment",
+                    "Remaining CO$_2$ warming",
+                ]
+                yvals = [
+                    historical_dT, recent_emissions * TCRE,
+                    (temp-historical_dT) * earth_feedback_co2_per_C_av * TCRE,
+                    non_co2_dTs[np.isclose(non_co2_dTs.index, temp-historical_dT)].iloc[0], zec_mean
+                ]
+                yvals = yvals + [temp - np.cumsum(yvals)[-1]]
+
+                if (not nonlinear_nonco2) or (nonlinear_nonco2 == "all"):
+                    lowind = np.isclose(quantile_reg_trends["quantile"], 0.17)
+                    highind = np.isclose(quantile_reg_trends["quantile"], 0.83)
+                    nonco2errorlow = non_co2_dTs[np.isclose(non_co2_dTs.index, temp - historical_dT)
+                         ].iloc[0] - quantile_reg_trends.loc[lowind, "a"].iloc[0] + quantile_reg_trends.loc[
+                        lowind, "b"].iloc[0] * (temp-historical_dT)
+                    nonco2errorhigh = non_co2_dTs[np.isclose(non_co2_dTs.index, temp - historical_dT)
+                        ].iloc[0] - quantile_reg_trends.loc[highind, "a"].iloc[0] + \
+                        quantile_reg_trends.loc[
+                        highind, "b"].iloc[0] * (temp - historical_dT)
+                else:
+                    nonco2errorlow = distributions.establish_median_temp_dep_nonlinear(
+                        quantile_reg_trends_nonlin, [temp - historical_dT], 0.17
+                    ).iloc[0]
+                    nonco2errorhigh = distributions.establish_median_temp_dep_nonlinear(
+                        quantile_reg_trends_nonlin, [temp - historical_dT], 0.83
+                    ).iloc[0]
+                # The uncertainty in historical warming was evaluated as 0.2C by the IPCC
+                errorlow = [
+                    0.2, recent_emissions_uncertainty * TCRE,
+                    TCRE * (temp-historical_dT) * earth_feedback_co2_per_C_stdv,
+                    nonco2errorlow,
+                    zec_sd,
+                ]
+                totallowerror = np.sum([x**2 for x in errorlow])**0.5
+                errorlow = errorlow + [totallowerror]
+                errorhigh = [
+                    0.2, recent_emissions_uncertainty * TCRE,
+                    TCRE * (temp-historical_dT) * earth_feedback_co2_per_C_stdv,
+                    nonco2errorhigh,
+                    zec_sd
+                ]
+                totalhigherror = np.sum([x**2 for x in errorhigh])**0.5
+                errorhigh = errorhigh + [totalhigherror]
+                waterfall.plot(
+                    xvals,
+                    yvals,
+                    red_color="orangered",
+                    green_color="cornflowerblue",
+                    blue_color="mediumblue",
+                    net_label="Temperature target"
+                )
+                plt.xticks(rotation=45, horizontalalignment="right")
+                plt.ylabel("Remaining budget (GtCO$_2$)")
+                plt.errorbar(xvals, np.cumsum(yvals), yerr=np.array([errorlow, errorhigh]), fmt='.', alpha=0.5, c="lightblue",)
+                plt.tight_layout()
+                plt.savefig(
+                    output_folder + waterfall_plot.format(
+                        include_magicc, include_fair, peak_version, temp, recent_emissions,
+                        zec_mean, use_permafrost
+                    )
+                )
+                print(f"Total high error for MAGICC {include_magicc}, FaIR {include_fair} temp {temp}: {totalhigherror}")
 if for_each_model:
     model_size.to_csv(
         output_folder + f"num_scenarios_for_model_{for_each_model}{'_' + peak_version if peak_version else ''}.csv"
