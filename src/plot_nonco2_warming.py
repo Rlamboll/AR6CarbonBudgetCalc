@@ -90,7 +90,7 @@ assert len([i for i in chosen_inds if i not in imageinds]) == 0
 colors = hsv(np.linspace(0, 1.0, len(chosen_inds) + 2))
 
 
-def plot_temps(magicc_df_all, magicc_df_non, future_dates):
+def plot_temps(magicc_df_all, magicc_df_non, future_dates, title):
     global i
     for i in range(plotnum):
         if imageinds[i] not in chosen_inds:
@@ -145,15 +145,16 @@ def plot_temps(magicc_df_all, magicc_df_non, future_dates):
     plt.xlabel("Total warming (C)")
     plt.ylabel("Non-CO$_2$ warming (C)")
     plt.legend()
+    plt.title(title)
 
-plot_temps(magicc_df_all, magicc_df_non, future_dates)
+plot_temps(magicc_df_all, magicc_df_non, future_dates, "MAGICC")
 plt.xlim([1.15, 2.5])
 plt.ylim([0.2, 0.6])
 plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_magicc.png")
 plt.close()
 
 # Repeat for fair
-plot_temps(fair_df_all, fair_df_non, future_dates)
+plot_temps(fair_df_all, fair_df_non, future_dates, "FaIR")
 plt.xlim([1.11, 2.5])
 plt.ylim([0.15, 0.6])
 plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_fair.png")

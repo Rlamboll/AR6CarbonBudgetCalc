@@ -481,7 +481,7 @@ def preprocess_FaIR_data(
             print(f"No match found for {i}")
     allsummary = []
     nonco2summary = []
-    desired_quants = [0.1, 0.25, 0.33, 0.5, 0.66, 0.75, 0.9]
+    desired_quants = [0.1, 0.167, 0.25, 0.33, 0.5, 0.66, 0.75, 0.833, 0.9]
     for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
         open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)

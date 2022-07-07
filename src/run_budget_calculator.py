@@ -27,6 +27,8 @@ zec_sd = 0.19   # Default 0.19
 zec_asym = False  # Default: False
 # The temperature difference already seen. (Units: C)
 historical_dT = 1.07  # Default: 1.07
+# Uncertainty in this value (Units: C). Only used if doing waterfall plot.
+historical_uncertainty = 0.2
 # The distribution of the TCRE function - either "normal", "lognormal mean match" or
 # "lognormal". The latter two cases are lognormal distributions, in the first
 # case matching the mean and sd of the normal distribution which fits the likelihood,
@@ -131,6 +133,12 @@ os.makedirs(output_folder, exist_ok=True)
 # If not none, should have {} for magicc, Fair, peak, temp, recem, ZEC, permafrost. E.g.
 # "waterfall_contributions_MAGICC_{}_FaIR_{}_peak{}_temp{}_recem{}_ZEC{}_pf{}.png"
 waterfall_plot = None  # default: None
+if waterfall_plot:
+    # Error bars on the non-CO2 component in the waterfall plot are calculated by
+    # separate runs with different quantiles of non-CO2 warming.
+    nonco2_waterfall_uncertainty = {
+        1.5:[80.3829939, 137.662183], 2.0: [96.56151808, 167.6989448]
+    }
 
 ###       Information for reading in files used to calculate non-CO2 component:
 
@@ -217,9 +225,9 @@ magicc_non_co2_col = (
 # The name of the peak temperature column output
 magicc_temp_col = "peak surface temperature (rel. to 2010-2019)"
 # The percentile to use for non-CO2 temperature change (for each scenario separately)
-nonco2_percentile = 50
+nonco2_percentile = "50.0"
 # The names of the temperature variables in MAGICC files (also specifies the quantile)
-magicc_nonco2_temp_variable = "{} climate diagnostics|Raw Surface Temperature (GSAT)|Non-CO2|MAGICCv{}|{}.0th Percentile".format(
+magicc_nonco2_temp_variable = "{} climate diagnostics|Raw Surface Temperature (GSAT)|Non-CO2|MAGICCv{}|{}th Percentile".format(
     arsr.upper(), magiccver, nonco2_percentile
 )
 magicc_tot_temp_variable = "{} climate diagnostics|Raw Surface Temperature (GSAT)|MAGICCv{}|50.0th Percentile".format(
@@ -661,27 +669,33 @@ for use_permafrost in List_use_permafrost:
                 TCRE = (tcre_high + tcre_low) / 2
                 xvals = [
                     "Historical Warming", "Recent emissions warming",
-                    "Earth Systems Feedback",
-                    "Non-CO$_2$ warming", "Zero Emissions Commitment",
+                    "Other Earth Systems Feedback",
+                    "Future non-CO$_2$ warming", "Zero Emissions Commitment",
                     "Remaining CO$_2$ warming",
                 ]
                 yvals = [
                     historical_dT, recent_emissions * TCRE,
-                    (temp-historical_dT) * earth_feedback_co2_per_C_av * TCRE,
-                    non_co2_dTs[np.isclose(non_co2_dTs.index, temp-historical_dT)].iloc[0], zec_mean
+                                   (
+                                               temp - historical_dT) * earth_feedback_co2_per_C_av * TCRE,
+                    non_co2_dTs[
+                        np.isclose(non_co2_dTs.index, temp - historical_dT)].iloc[0],
+                    zec_mean
                 ]
                 yvals = yvals + [temp - np.cumsum(yvals)[-1]]
 
                 if (not nonlinear_nonco2) or (nonlinear_nonco2 == "all"):
                     lowind = np.isclose(quantile_reg_trends["quantile"], 0.17)
                     highind = np.isclose(quantile_reg_trends["quantile"], 0.83)
-                    nonco2errorlow = non_co2_dTs[np.isclose(non_co2_dTs.index, temp - historical_dT)
-                         ].iloc[0] - quantile_reg_trends.loc[lowind, "a"].iloc[0] + quantile_reg_trends.loc[
-                        lowind, "b"].iloc[0] * (temp-historical_dT)
-                    nonco2errorhigh = non_co2_dTs[np.isclose(non_co2_dTs.index, temp - historical_dT)
-                        ].iloc[0] - quantile_reg_trends.loc[highind, "a"].iloc[0] + \
-                        quantile_reg_trends.loc[
-                        highind, "b"].iloc[0] * (temp - historical_dT)
+                    nonco2errorlow = \
+                    non_co2_dTs[np.isclose(non_co2_dTs.index, temp - historical_dT)
+                    ].iloc[0] - (quantile_reg_trends.loc[lowind, "a"].iloc[0] +
+                                 quantile_reg_trends.loc[
+                                     lowind, "b"].iloc[0] * (temp - historical_dT))
+                    nonco2errorhigh = -non_co2_dTs[
+                        np.isclose(non_co2_dTs.index, temp - historical_dT)
+                    ].iloc[0] + (quantile_reg_trends.loc[highind, "a"].iloc[0] + \
+                                 quantile_reg_trends.loc[
+                                     highind, "b"].iloc[0] * (temp - historical_dT))
                 else:
                     nonco2errorlow = distributions.establish_median_temp_dep_nonlinear(
                         quantile_reg_trends_nonlin, [temp - historical_dT], 0.17
@@ -689,23 +703,27 @@ for use_permafrost in List_use_permafrost:
                     nonco2errorhigh = distributions.establish_median_temp_dep_nonlinear(
                         quantile_reg_trends_nonlin, [temp - historical_dT], 0.83
                     ).iloc[0]
-                # The uncertainty in historical warming was evaluated as 0.2C by the IPCC
+                # The uncertainty in historical warming is added used elsewhere
                 errorlow = [
-                    0.2, recent_emissions_uncertainty * TCRE,
-                    TCRE * (temp-historical_dT) * earth_feedback_co2_per_C_stdv,
-                    nonco2errorlow,
+                    0, recent_emissions_uncertainty * TCRE,
+                       TCRE * (temp - historical_dT) * earth_feedback_co2_per_C_stdv,
+                       nonco2_waterfall_uncertainty[temp][0] * TCRE,
                     zec_sd,
                 ]
-                totallowerror = np.sum([x**2 for x in errorlow])**0.5
-                errorlow = errorlow + [totallowerror]
+                totallowerror = (np.sum(
+                    [x ** 2 for x in errorlow]) + historical_uncertainty ** 2) ** 0.5
+                totallowerror_unsyst = np.sum([x ** 2 for x in errorlow]) ** 0.5
+                errorlow = errorlow + [totallowerror_unsyst]
                 errorhigh = [
-                    0.2, recent_emissions_uncertainty * TCRE,
-                    TCRE * (temp-historical_dT) * earth_feedback_co2_per_C_stdv,
-                    nonco2errorhigh,
+                    0, recent_emissions_uncertainty * TCRE,
+                       TCRE * (temp - historical_dT) * earth_feedback_co2_per_C_stdv,
+                       nonco2_waterfall_uncertainty[temp][1] * TCRE,
                     zec_sd
                 ]
-                totalhigherror = np.sum([x**2 for x in errorhigh])**0.5
-                errorhigh = errorhigh + [totalhigherror]
+                totalhigherror = (np.sum(
+                    [x ** 2 for x in errorhigh]) + historical_uncertainty ** 2) ** 0.5
+                totalhigherror_unsyst = np.sum([x ** 2 for x in errorhigh]) ** 0.5
+                errorhigh = errorhigh + [totalhigherror_unsyst]
                 waterfall.plot(
                     xvals,
                     yvals,
@@ -715,8 +733,22 @@ for use_permafrost in List_use_permafrost:
                     net_label="Temperature target"
                 )
                 plt.xticks(rotation=45, horizontalalignment="right")
-                plt.ylabel("Remaining budget (GtCO$_2$)")
-                plt.errorbar(xvals, np.cumsum(yvals), yerr=np.array([errorlow, errorhigh]), fmt='.', alpha=0.5, c="lightblue",)
+                plt.ylabel("Temperature rise from 1850-1900 ($^o$C)")
+                plt.errorbar(xvals, np.cumsum(yvals),
+                             yerr=np.array([
+                                 [historical_uncertainty] + [0] * (len(yvals) - 2) + [
+                                     totallowerror],
+                                 [historical_uncertainty] + [0] * (len(yvals) - 2) + [
+                                     totalhigherror]
+                             ]), capsize=2.5, fmt='.', c="deeppink")
+                plt.errorbar(xvals, np.cumsum(yvals),
+                             yerr=np.array([errorlow, errorhigh]), fmt='.',
+                             c="royalblue", capsize=3)
+                plt.errorbar(
+                    xvals[3], np.cumsum(yvals)[3],
+                    np.array([[nonco2errorlow], [nonco2errorhigh]]),
+                    fmt='.', alpha=0.7,
+                    c="cyan", capsize=3)
                 plt.tight_layout()
                 plt.savefig(
                     output_folder + waterfall_plot.format(
