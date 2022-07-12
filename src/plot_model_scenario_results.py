@@ -137,6 +137,14 @@ for scenario in ["SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]:
         image_data[magicc_non_co2_col].iloc[ind]
     )
     legends.append(scenario)
+image_lincoefs = np.polyfit(image_data[magicc_temp_col], image_data[magicc_non_co2_col], 1)
+image_linfun = np.poly1d(image_lincoefs)
+plt.plot(
+    [historic_warming + min(image_data[magicc_temp_col]), historic_warming + max(image_data[magicc_temp_col])],
+    image_linfun([min(image_data[magicc_temp_col]), max(image_data[magicc_temp_col])]),
+    linewidth=1, c="grey", linestyle="--"
+)
+legends.append("Linear fit")
 plt.legend(legends)
 plt.xlabel("Peak total warming (C)")
 plt.ylabel("Non-CO$_2$ warming relative to 2010-2019 (C)")
