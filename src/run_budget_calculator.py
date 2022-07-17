@@ -65,7 +65,7 @@ quantiles_to_report = np.arange(0.01, 0.991, 0.0025) if allquant else np.array(
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "ar6wg3"  # Default: "ar6wg3"
+runver = "sr15prewg1"  # Default: "ar6wg3"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -76,6 +76,9 @@ elif runver == "sr15ccbox71":
     arsr = "sr15"
 elif runver == "sr15wg1":
     output_folder = "../Output/sr15wg1/"
+    arsr = "sr15"
+elif runver == "sr15prewg1":
+    output_folder = "../Output/sr15prewg1/"
     arsr = "sr15"
 else:
     raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
@@ -202,6 +205,17 @@ elif runver == "sr15wg1":
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
     fair_folder = "../InputData/fair141_sr15/"
     fair_filestr = "IPCCSR15_"
+elif runver == "sr15prewg1":
+    # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
+    # main WG1 RCB calculations)
+    jobno = "20210224-sr15"
+    magiccver = "7.5.1"
+    input_folder = "../InputData/MAGICCMeinshausenInputs_sr15scen/"
+    vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
+    vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
+    fair_folder = "../InputData/FAIR13_sr15/"
+    fair_filestr = "IPCCSR15_"
+    fair_c
 else:
     raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
 # FaIR filenames
