@@ -185,6 +185,7 @@ if runver == "ar6wg3":
     # We may search for processed FaIR data here if required
     fair_folder = "../InputData/fair163_ar6/"
     fair_filestr = "FaIRv1.6.2__"
+    fair_filter = None
 elif runver == "sr15ccbox71":
     # SR1.5 with later MAGICC version as in Cross Chapter Box 7.1 of AR6WG1
     jobno = "20211014-sr15"
@@ -195,6 +196,7 @@ elif runver == "sr15ccbox71":
     vetted_scen_list_file_sheet = "Sheet1"
     fair_folder = "../InputData/fair163_sr15/"
     fair_filestr = "FaIRv1.6.2__"
+    fair_filter = None
 elif runver == "sr15wg1":
     # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
     # main WG1 RCB calculations)
@@ -205,6 +207,7 @@ elif runver == "sr15wg1":
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
     fair_folder = "../InputData/fair141_sr15/"
     fair_filestr = "IPCCSR15_"
+    fair_filter = "../InputData/fair141_sr15//constrained/IPCCSR15_REMIND-MAgPIE 1.5_SSP2-45_GAS.SCEN.csv"
 elif runver == "sr15prewg1":
     # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
     # main WG1 RCB calculations)
@@ -215,7 +218,7 @@ elif runver == "sr15prewg1":
     vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
     fair_folder = "../InputData/FAIR13_sr15/"
     fair_filestr = "IPCCSR15_"
-    fair_c
+    fair_filter = "../InputData/FAIR13_sr15/constrained/IPCCSR15_REMIND-MAgPIE 1.5_SSP2-45_GAS.SCEN.csv"
 else:
     raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
 # FaIR filenames
@@ -318,6 +321,7 @@ for use_permafrost in List_use_permafrost:
                     magicc_nonco2_temp_variable,
                     magicc_tot_temp_variable,
                     fair_filestr,
+                    fair_filter,
                 )
                 all_fair_db.to_csv(fair_folder + fair_processed_file.format("alltemp"))
                 nonco2_fair_db.to_csv(fair_folder + fair_processed_file.format("nonco2temp"))

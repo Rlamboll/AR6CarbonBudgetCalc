@@ -421,6 +421,7 @@ def preprocess_FaIR_data(
     magicc_nonco2_temp_variable,
     magicc_tot_temp_variable,
     fair_filestr,
+    fair_filter,
 ):
     """
 
@@ -430,6 +431,7 @@ def preprocess_FaIR_data(
     :param magicc_nonco2_temp_variable: String, name of the variable for non-CO2 warming to output
     :param magicc_tot_temp_variable: String, ame of the variable for total warming to output
     :param fair_filestr: String that all FaIR filenames for runs start with
+    :param fair_filter: String or None, if String finds a file with runs that pass each scenario
     :return:
     """
     import netCDF4
@@ -482,6 +484,10 @@ def preprocess_FaIR_data(
     allsummary = []
     nonco2summary = []
     desired_quants = [0.1, 0.167, 0.25, 0.33, 0.5, 0.66, 0.75, 0.833, 0.9]
+    if fair_filter:
+        # This is just stored as a column vector
+        filter_file = pd.read_csv(fair_filter, header=None)[0]
+        filter_file = [x == 1 for x in filter_file]
     for orig, file in filename_dict.items():
         open_link_all = netCDF4.Dataset(folder_all + file)
         open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
@@ -494,9 +500,18 @@ def preprocess_FaIR_data(
             times = np.arange(
                 zero_year, zero_year + len(open_link_all.variables[var][:])
             )
-        alltemps = pd.DataFrame(open_link_all[var][:], index=times).quantile(desired_quants, axis=1)
-        noco2temps = (pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(open_link_co2_only[var][:], index=times)).quantile(
-            desired_quants, axis=1)
+        if fair_filter:
+            alltemps = pd.DataFrame(
+                open_link_all[var][:], index=times).loc[:, filter_file].quantile(desired_quants, axis=1)
+            noco2temps = (
+                        pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
+                    open_link_co2_only[var][:], index=times)).loc[:, filter_file].quantile(
+                desired_quants, axis=1)
+        else:
+            alltemps = pd.DataFrame(open_link_all[var][:], index=times).quantile(desired_quants, axis=1)
+            noco2temps = (pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
+                open_link_co2_only[var][:], index=times)).quantile(
+                desired_quants, axis=1)
         desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
         for col in ["scenario", "region", "model"]:
             alltemps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
