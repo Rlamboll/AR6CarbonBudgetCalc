@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import os
+import pandas as pd
 import scipy.interpolate
 
 from src.distributions_of_inputs import _read_and_clean_summary_csv, _clean_columns_magicc
@@ -150,11 +151,14 @@ def plot_temps(magicc_df_all, magicc_df_non, future_dates, title):
 plot_temps(magicc_df_all, magicc_df_non, future_dates, "MAGICC")
 plt.xlim([1.15, 2.5])
 plt.ylim([0.2, 0.6])
-plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_magicc.png")
+plot_folder = "../Output/Plots/"
+if not os.path.exists(plot_folder):
+    os.makedirs(plot_folder)
+plt.savefig(plot_folder + "nonco2_co2_relation_over_time_magicc.png")
 plt.close()
 
 # Repeat for fair
 plot_temps(fair_df_all, fair_df_non, future_dates, "FaIR")
 plt.xlim([1.11, 2.5])
 plt.ylim([0.15, 0.6])
-plt.savefig("../Output/Plots/nonco2_co2_relation_over_time_fair.png")
+plt.savefig(plot_folder + "nonco2_co2_relation_over_time_fair.png")
