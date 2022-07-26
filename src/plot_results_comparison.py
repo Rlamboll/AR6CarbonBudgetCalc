@@ -6,7 +6,7 @@ import waterfall_chart as waterfall
 import seaborn as sns
 
 results_folder = "../Output/"
-subfolders = ["sr15wg1/", "ar6wg3/", "sr15ccbox71/"]
+subfolders = ["sr15prewg1/", "ar6wg3/", "sr15ccbox71/"]
 
 # The results will go into the output folder, in this subfolder:
 plot_folder = "Plots/"
@@ -83,7 +83,7 @@ if not plot_distn:
     for futwarm in [0.43, 0.93]:
         plt.close()
         use_results = results_table.loc[
-            ([r in ["SR15CCBOX71", "SR15WG1"] for r in results_table["Database"]]) &
+            ([r in ["SR15CCBOX71", "SR15PREWG1"] for r in results_table["Database"]]) &
             (np.isclose(results_table["Future_warming"], futwarm)) &
             (results_table["TCRE distribution"] == "normal") &
             (results_table["Permafrost"] == False) &
@@ -222,7 +222,7 @@ if not plot_distn:
             "Peak": (results_table["peak"] == peak0),
             "NonCO2": (results_table["NonCO2"] == NonCO20),
             "FaIR": (results_table["FaIR"] == False),
-            "Database": (results_table["Database"] == "SR15WG1"),
+            "Database": (results_table["Database"] == "SR15PREWG1"),
             "recem": (results_table["recem"]==recemorig)
         })
 

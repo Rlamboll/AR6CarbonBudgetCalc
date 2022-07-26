@@ -61,11 +61,11 @@ allquant = False  # False
 quantiles_to_report = np.arange(0.01, 0.991, 0.0025) if allquant else np.array(
     [0.1, 0.17, 0.33, 0.5, 0.66, 0.83, 0.9])
 
-# Run version should be ar6wg3, sr15ccbox71, or sr15wg1, corresponding to running the
+# Run version should be ar6wg3, sr15ccbox71, or sr15prewg1, corresponding to running the
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
 # cross-chapter box 7.1/ Nicholls 2021 configuration of MAGICC or the older Meinshausen
 # 2020 configuration, as was used in the AR6 WG1 report.
-runver = "sr15prewg1"  # Default: "ar6wg3"
+runver = "ar6wg3"  # Default: "ar6wg3"
 
 # Name of the output folder
 if runver == "ar6wg3":
@@ -74,14 +74,11 @@ if runver == "ar6wg3":
 elif runver == "sr15ccbox71":
     output_folder = "../Output/sr15ccbox71/"
     arsr = "sr15"
-elif runver == "sr15wg1":
-    output_folder = "../Output/sr15wg1/"
-    arsr = "sr15"
 elif runver == "sr15prewg1":
     output_folder = "../Output/sr15prewg1/"
     arsr = "sr15"
 else:
-    raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
+    raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15prewg1")
 
 # Output file location for budget data. Includes {} sections detailing inclusion of
 # TCRE, inclusion of magic/fair, earth system feedback and likelihood. More added later
@@ -132,7 +129,8 @@ if for_each_model:
     # We have a real problem with filenames being too long
     output_file = output_file.replace("budget_", "")
 os.makedirs(output_folder, exist_ok=True)
-# if not None, do a waterfall plot of the contributions of each component to the budget.
+# if not None, do a waterfall plot of the contributions of each component to the budget
+# and save it with this string.
 # If not none, should have {} for magicc, Fair, peak, temp, recem, ZEC, permafrost. E.g.
 # "waterfall_contributions_MAGICC_{}_FaIR_{}_peak{}_temp{}_recem{}_ZEC{}_pf{}.png"
 waterfall_plot = None  # default: None
@@ -197,17 +195,6 @@ elif runver == "sr15ccbox71":
     fair_folder = "../InputData/fair163_sr15/"
     fair_filestr = "FaIRv1.6.2__"
     fair_filter = None
-elif runver == "sr15wg1":
-    # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
-    # main WG1 RCB calculations)
-    jobno = "20210224-sr15"
-    magiccver = "7.5.1"
-    input_folder = "../InputData/MAGICCMeinshausenInputs_sr15scen/"
-    vetted_scen_list_file = input_folder + "sr15_scenario_runs_mocked_vetting.xlsx"
-    vetted_scen_list_file_sheet = "meta_Ch3vetted_withclimate"
-    fair_folder = "../InputData/fair141_sr15/"
-    fair_filestr = "IPCCSR15_"
-    fair_filter = "../InputData/fair141_sr15//constrained/IPCCSR15_REMIND-MAgPIE 1.5_SSP2-45_GAS.SCEN.csv"
 elif runver == "sr15prewg1":
     # SR1.5 with MAGICC using Meinshausen et al. (2020) input files (as was used for
     # main WG1 RCB calculations)
@@ -220,12 +207,12 @@ elif runver == "sr15prewg1":
     fair_filestr = "IPCCSR15_"
     fair_filter = "../InputData/FAIR13_sr15/constrained/IPCCSR15_REMIND-MAgPIE 1.5_SSP2-45_GAS.SCEN.csv"
 else:
-    raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15wg1")
+    raise ValueError(f"runver {runver} not available, choose ar6wg3, sr15ccbox71 or sr15prewg1")
 # FaIR filenames
 fair_processed_file = "fair_processed_data_{}.csv"
 # The folders for the unscaled anthropological temperature changes files (many nc
 # files), skipped if processed data is available
-fair_anthro_folder = "all_temps/"
+fair_anthro_folder = "anthro_temps/"
 fair_co2_only_folder = "co2_temps/"
 non_co2_magicc_file_permafrost = (
     input_folder + f"job-{jobno}-nonco2_Raw-GSAT-Non-CO2.csv"
@@ -549,8 +536,8 @@ for use_permafrost in List_use_permafrost:
                         all_non_co2_db[magicc_temp_col] + historical_dT, all_non_co2_db[magicc_non_co2_col], color="b", s=6
                     )
                     legend_text.append("Averaged")
-            plt.xlim(temp_plot_limits)
-            plt.ylim(non_co2_plot_limits)
+            #plt.xlim(temp_plot_limits)
+            #plt.ylim(non_co2_plot_limits)
 
             plt.ylabel("Non-CO$_2$ warming relative to 2010-2019 (C)")
             plt.xlabel("Peak total warming (C)")

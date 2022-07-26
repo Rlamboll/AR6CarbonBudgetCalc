@@ -14,7 +14,7 @@ and unrepresented Earth feedbacks (a linear function of temperature change).
 
 By changing the value `runver` this code can replicate the values in the 
 IPCC reports for AR6 WGI and WGIII.  
-With `runver = sr15wg1, zec_sd = 0, recent_emissions=209` this replicates Table 5.8 
+With `runver = sr15prewg1, zec_sd = 0, recent_emissions=209` this replicates Table 5.8 
 in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias et al, 
 2021) and Table SPM.2 of the Summary for Policymakers (IPCC, 2021) of the IPCC AR6 WGI 
 report. Note that values reported in the report are rounded to the nearest 10 PgC or 50 
