@@ -18,7 +18,7 @@ if not os.path.exists(results_folder + plot_folder):
 plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
-              "nonCO2pc50_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm{}.csv"
+              "nonCO2pc50.0_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm{}.csv"
 cols = ["Database", "TCRE distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
 results_table = pd.DataFrame(
     columns=cols
