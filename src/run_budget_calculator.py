@@ -160,6 +160,9 @@ if waterfall_plot:
 # applied to FaIR.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
+# If "nonCO2AtPeakAverage" uses the peak of net zero scenarios for the separate MAGICC
+# and FaIR calculations but the non-CO2 average at the time of peak average temp for the
+# combined assessment.
 peak_version = None  # default: None
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
@@ -264,7 +267,8 @@ for use_permafrost in List_use_permafrost:
     else:
         non_co2_magicc_file = non_co2_magicc_file_no_permafrost
         tot_magicc_file = tot_magicc_file_nopermafrost
-    magicc_peak_version = peak_version if peak_version != "nonCO2AtPeakTotMagicc" else "nonCO2AtPeakTotIfNZ"
+    magicc_peak_version = peak_version if peak_version not in [
+        "nonCO2AtPeakTotMagicc", "nonCO2AtPeakAverage"] else "nonCO2AtPeakTotIfNZ"
     magicc_db_full = distributions.load_data_from_summary(
         non_co2_magicc_file,
         tot_magicc_file,
@@ -284,7 +288,8 @@ for use_permafrost in List_use_permafrost:
 
     if magicc_savename:
         magicc_db.to_csv(output_folder + magicc_savename.format(use_permafrost))
-        magicc_db_full.to_csv(output_folder + magicc_savename.format(use_permafrost).replace('.csv', '-all-scenarios.csv'))
+        magicc_db_full.to_csv(output_folder + magicc_savename.format(
+            use_permafrost).replace('.csv', '-all-scenarios.csv'))
 
     # We interpret the higher quantiles as meaning a smaller budget
     inverse_quantiles_to_report = 1 - quantiles_to_report
@@ -313,7 +318,7 @@ for use_permafrost in List_use_permafrost:
                 all_fair_db.to_csv(fair_folder + fair_processed_file.format("alltemp"))
                 nonco2_fair_db.to_csv(fair_folder + fair_processed_file.format("nonco2temp"))
             if peak_version != "nonCO2AtPeakTotMagicc":
-                fair_peak_version = peak_version
+                fair_peak_version = peak_version if peak_version != "nonCO2AtPeakAverage" else "nonCO2AtPeakTotIfNZ"
                 fair_vetting_file = vetted_scen_list_file
             else:
                 fair_peak_version = "officialNZ"
@@ -338,7 +343,26 @@ for use_permafrost in List_use_permafrost:
                 non_co2_dT_fair.to_csv(output_folder + fair_savename.format("None"), index=False)
             if include_magicc:
                 assert len(non_co2_dT_fair) == len(magicc_db), "FaIR and MAGICC mismatch"
-                master_all_non_co2 = (non_co2_dT_fair + magicc_db) / 2
+                if peak_version != "nonCO2AtPeakAverage":
+                    master_all_non_co2 = (non_co2_dT_fair + magicc_db) / 2
+                else:
+                    master_all_non_co2 = distributions.load_data_from_summary(
+                        non_co2_magicc_file,
+                        tot_magicc_file,
+                        emissions_file,
+                        magicc_non_co2_col,
+                        magicc_temp_col,
+                        magicc_nonco2_temp_variable,
+                        magicc_tot_temp_variable,
+                        temp_offset_years,
+                        magicc_peak_version,
+                        permafrost=use_permafrost,
+                        vetted_scen_list_file=vetted_scen_list_file,
+                        vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
+                        sr15_rename=sr15_rename,
+                        second_non_co2_file=fair_folder + fair_processed_file.format("nonco2temp"),
+                        second_tot_file=fair_folder + fair_processed_file.format("alltemp"),
+                    )
                 master_all_non_co2 = master_all_non_co2[[magicc_non_co2_col, magicc_temp_col]]
             else:
                 master_all_non_co2 = non_co2_dT_fair[[magicc_non_co2_col, magicc_temp_col]]

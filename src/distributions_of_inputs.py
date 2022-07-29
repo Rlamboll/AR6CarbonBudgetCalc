@@ -140,7 +140,9 @@ def load_data_from_summary(
     permafrost=None,
     vetted_scen_list_file=None,
     vetted_scen_list_file_sheet=None,
-    sr15_rename=False
+    sr15_rename=False,
+    second_non_co2_file=None,
+    second_tot_file=None,
 ):
     """
     Loads the non-CO2 warming and total warming from files in the format output by
@@ -243,6 +245,25 @@ def load_data_from_summary(
         scenario_cols, temp_df, tot_temp_variable, tot_magicc_file,
         vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
     )
+    # In some cases we want the average of both datasets to be used
+    if second_non_co2_file:
+        assert second_tot_file
+        non_co2_df2 = _read_and_clean_summary_csv(
+            scenario_cols, temp_df, magicc_nonco2_temp_variable, second_non_co2_file,
+            vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
+        )
+        assert set(non_co2_df2.index) == set(non_co2_df.index)
+        assert all([c in non_co2_df2.columns for c in non_co2_df.columns])
+        non_co2_df2 = non_co2_df2.loc[non_co2_df.index, non_co2_df.columns]
+        non_co2_df = (non_co2_df2 + non_co2_df) / 2
+        tot_df2 = _read_and_clean_summary_csv(
+            scenario_cols, temp_df, tot_temp_variable, second_tot_file,
+            vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
+        )
+        assert set(tot_df2.index) == set(tot_df.index)
+        assert all([c in tot_df2.columns for c in tot_df.columns])
+        tot_df2 = tot_df2.loc[tot_df.index, tot_df.columns]
+        tot_df = (tot_df2 + tot_df) / 2
     # For each scenario, we subtract the average temperature from the offset years
     for ind, row in tot_df.iterrows():
         temp = max(tot_df.loc[ind])
