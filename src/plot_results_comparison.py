@@ -34,8 +34,7 @@ for subfolder in subfolders:
                                 for zecasym in [True, False]:
                                     for peak in [
                                         "None", "peakNonCO2Warming", "nonCO2AtPeakTot",
-                                        "officialNZ", "nonCO2AtPeakTotIfNZ",
-                                        "nonCO2AtPeakTotIfOfNZ", "nonCO2AtPeakTotMagicc"
+                                        "officialNZ", "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakAverage"
                                     ]:
                                         for recem in ["277", "209"]:
                                             try:
@@ -164,7 +163,7 @@ if not plot_distn:
             (9, "peak",             "nonCO2AtPeakTot", "Non-CO$_2$ warming at peak total temp"),
             (9, "peak",             "officialNZ", "Non-CO$_2$ warming at preharmonised NZ"),
             (9, "peak",             "nonCO2AtPeakTotIfNZ", "Non-CO$_2$ warming at peak total, only NZ scenarios"),
-            (9, "peak",             "nonCO2AtPeakTotMagicc", "Non-CO$_2$ warming at peak total in MAGICC, only NZ scenarios"),
+            (9, "peak",             "nonCO2AtPeakAverage", "Non-CO$_2$ warming at peak average total, only NZ scenarios"),
             (10, "recem",           "209", "Recent emissions")
         ]:
             db = results_table.iloc[
@@ -260,9 +259,9 @@ if not plot_distn:
             (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW"), "Use QRW"),
             (7, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
-                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakTotMagicc"), "Change non-CO$_2$ time"),
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage"), "Change non-CO$_2$ time"),
             (6, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
-                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakTotMagicc") &
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage") &
                 (results_table["Permafrost"] == True), "Permafrost in MAGICC")
         ]:
             db = results_table.iloc[
@@ -283,7 +282,8 @@ if not plot_distn:
             red_color="orangered",
             green_color="cornflowerblue",
             blue_color="mediumblue",
-            net_label="Updated budget"
+            net_label="Updated budget",
+            formatting="{:,.0f}"
         )
         plt.xticks(rotation=45, horizontalalignment="right")
         plt.ylabel("Remaining budget (GtCO$_2$)")

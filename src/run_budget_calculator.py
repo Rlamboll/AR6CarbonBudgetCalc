@@ -160,9 +160,9 @@ if waterfall_plot:
 # applied to FaIR.
 # If "officialNZ" uses the date of net zero in the metadata used to validate the
 # scenarios - validation file must also be used.
-# If "nonCO2AtPeakAverage" uses the peak of net zero scenarios for the separate MAGICC
-# and FaIR calculations but the non-CO2 average at the time of peak average temp for the
-# combined assessment.
+# If "nonCO2AtPeakAverage" uses the time of peak temperature of net zero scenarios for
+# the separate MAGICC and FaIR calculations but averages the temperature trends before
+# calculating the trends in the combined assessment.
 peak_version = None  # default: None
 output_file += "_" + str(peak_version) + "_recEm" + str(round(recent_emissions)) + ".csv"
 output_figure_file += "_" + str(peak_version) + ".pdf"
@@ -363,7 +363,9 @@ for use_permafrost in List_use_permafrost:
                         second_non_co2_file=fair_folder + fair_processed_file.format("nonco2temp"),
                         second_tot_file=fair_folder + fair_processed_file.format("alltemp"),
                     )
-                master_all_non_co2 = master_all_non_co2[[magicc_non_co2_col, magicc_temp_col]]
+                master_all_non_co2 = master_all_non_co2.loc[
+                    magicc_db.index, [magicc_non_co2_col, magicc_temp_col]
+                ]
             else:
                 master_all_non_co2 = non_co2_dT_fair[[magicc_non_co2_col, magicc_temp_col]]
         else:
