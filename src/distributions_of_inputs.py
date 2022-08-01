@@ -246,6 +246,8 @@ def load_data_from_summary(
         vetted_scens, use_permafrost=permafrost, sr15_rename=sr15_rename
     )
     # In some cases we want the average of both datasets to be used
+    if second_tot_file:
+        assert second_non_co2_file
     if second_non_co2_file:
         assert second_tot_file
         non_co2_df2 = _read_and_clean_summary_csv(
