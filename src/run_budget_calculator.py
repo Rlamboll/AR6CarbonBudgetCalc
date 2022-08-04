@@ -138,7 +138,7 @@ if waterfall_plot:
     # Error bars on the non-CO2 component in the waterfall plot are calculated by
     # separate runs with different quantiles of non-CO2 warming.
     nonco2_waterfall_uncertainty = {
-        1.5:[80.3829939, 137.662183], 2.0: [96.56151808, 167.6989448]
+        1.5:[82, 124.3], 2.0: [95, 178]
     }
 
 ###       Information for reading in files used to calculate non-CO2 component:
@@ -734,15 +734,15 @@ for use_permafrost in List_use_permafrost:
                     nonco2errorhigh = distributions.establish_median_temp_dep_nonlinear(
                         quantile_reg_trends_nonlin, [temp - historical_dT], 0.83
                     ).iloc[0]
-                # The uncertainty in historical warming is added used elsewhere
+                # The uncertainty in historical warming is added elsewhere
                 errorlow = [
                     0, recent_emissions_uncertainty * TCRE,
                        TCRE * (temp - historical_dT) * earth_feedback_co2_per_C_stdv,
                        nonco2_waterfall_uncertainty[temp][0] * TCRE,
                     zec_sd,
                 ]
-                totallowerror = (np.sum(
-                    [x ** 2 for x in errorlow]) + historical_uncertainty ** 2) ** 0.5
+                totallowerror = (np.sum([x ** 2 for x in errorlow]) +
+                            historical_uncertainty ** 2 + nonco2errorlow ** 2) ** 0.5
                 totallowerror_unsyst = np.sum([x ** 2 for x in errorlow]) ** 0.5
                 errorlow = errorlow + [totallowerror_unsyst]
                 errorhigh = [
@@ -752,7 +752,8 @@ for use_permafrost in List_use_permafrost:
                     zec_sd
                 ]
                 totalhigherror = (np.sum(
-                    [x ** 2 for x in errorhigh]) + historical_uncertainty ** 2) ** 0.5
+                    [x ** 2 for x in errorhigh]) + historical_uncertainty ** 2 +
+                                  nonco2errorhigh ** 2) ** 0.5
                 totalhigherror_unsyst = np.sum([x ** 2 for x in errorhigh]) ** 0.5
                 errorhigh = errorhigh + [totalhigherror_unsyst]
                 waterfall.plot(
@@ -765,18 +766,18 @@ for use_permafrost in List_use_permafrost:
                 )
                 plt.xticks(rotation=45, horizontalalignment="right")
                 plt.ylabel("Temperature rise from 1850-1900 ($^o$C)")
-                plt.errorbar(xvals, np.cumsum(yvals),
+                cumsumy = np.cumsum(yvals)
+                plt.errorbar([0.15, len(yvals) - 1 + 0.15],
+                             [cumsumy[0], cumsumy[len(yvals) - 1]],
                              yerr=np.array([
-                                 [historical_uncertainty] + [0] * (len(yvals) - 2) + [
-                                     totallowerror],
-                                 [historical_uncertainty] + [0] * (len(yvals) - 2) + [
-                                     totalhigherror]
+                                 [historical_uncertainty, totallowerror],
+                                 [historical_uncertainty, totalhigherror]
                              ]), capsize=2.5, fmt='.', c="deeppink")
-                plt.errorbar(xvals, np.cumsum(yvals),
+                plt.errorbar(np.arange(len(xvals))-0.15, cumsumy,
                              yerr=np.array([errorlow, errorhigh]), fmt='.',
                              c="royalblue", capsize=3)
                 plt.errorbar(
-                    xvals[3], np.cumsum(yvals)[3],
+                    3, cumsumy[3],
                     np.array([[nonco2errorlow], [nonco2errorhigh]]),
                     fmt='.', alpha=0.7,
                     c="cyan", capsize=3)
@@ -787,7 +788,7 @@ for use_permafrost in List_use_permafrost:
                         zec_mean, use_permafrost
                     )
                 )
-                print(f"Total high error for MAGICC {include_magicc}, FaIR {include_fair} temp {temp}: {totalhigherror}")
+                print(f"Total temperature error for MAGICC {include_magicc}, FaIR {include_fair} temp {temp}: {totallowerror}, {totalhigherror}")
 if for_each_model:
     model_size.to_csv(
         output_folder + f"num_scenarios_for_model_{for_each_model}{'_' + peak_version if peak_version else ''}.csv"
