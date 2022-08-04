@@ -1,3 +1,4 @@
+import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -30,7 +31,7 @@ for subfolder in subfolders:
                 for ESF in [7.1]:
                     for Permafrost in [True, False]:
                         for NonCO2 in ["all", "QRW"]:
-                            for zecsd in ["0", "0.19"]:
+                            for zecsd in ["0", "0.19", "0.3"]:
                                 for zecasym in [True, False]:
                                     for peak in [
                                         "None", "peakNonCO2Warming", "nonCO2AtPeakTot",
@@ -104,9 +105,26 @@ if not plot_distn:
         )
         use_results["NonCO2"] = [x if x!="all" else "linear" for x in use_results["NonCO2"]]
 
-        sns.catplot(
+        def add_median_labels(ax, fmt='.0f'):
+            lines = ax.get_lines()
+            boxes = [c for c in ax.get_children() if type(c).__name__ == 'PathPatch']
+            lines_per_box = int(len(lines) / len(boxes))
+            for median in lines[4:len(lines):lines_per_box]:
+                x, y = (data.mean() for data in median.get_data())
+                # choose value depending on horizontal or vertical plot orientation
+                value = x if (median.get_xdata()[1] - median.get_xdata()[0]) == 0 else y
+                text = ax.text(x, y, f'{value:{fmt}}', ha='center', va='center',
+                               fontweight='bold', color='white')
+                # create median-colored border around white text for contrast
+                text.set_path_effects([
+                    path_effects.Stroke(linewidth=3, foreground=median.get_color()),
+                    path_effects.Normal(),
+                ])
+        cplot = sns.catplot(
             data=use_results, x="Model", hue="Updated", y="Budget", kind="box", hue_order=["no", "yes"], col="NonCO2"
         )
+        for ax in cplot.axes.ravel():
+            add_median_labels(ax)
         plt.savefig(
             results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}.png")
         for quant in ["0.5", "0.66"]:
@@ -157,9 +175,10 @@ if not plot_distn:
             (1, "TCRE distribution", "lognormal", "Lognormal TCRE distribution"),
             (5, "Permafrost",       True, "Include permafrost in MAGICC results"),
             (6, "ZECsd",            "0", "ZEC standard deviation 0"),
+            (6, "ZECsd",            "0.3", "ZEC standard deviation 0.3"),
             (7, "ZEC asymmetry",    True, "ZEC only impacts if positive"),
             (8, "NonCO2",           "QRW", "Use QRW for non-CO$_2$ fit"),
-            (9, "peak",             "peakNonCO2Warming", "Maximum Non-CO2 warming"),
+            (9, "peak",             "peakNonCO2Warming", "Maximum Non-CO$_2$ warming"),
             (9, "peak",             "nonCO2AtPeakTot", "Non-CO$_2$ warming at peak total temp"),
             (9, "peak",             "officialNZ", "Non-CO$_2$ warming at preharmonised NZ"),
             (9, "peak",             "nonCO2AtPeakTotIfNZ", "Non-CO$_2$ warming at peak total, only NZ scenarios"),
@@ -255,7 +274,7 @@ if not plot_distn:
             (10, (results_table["Database"] == "SR15CCBOX71"), "Update MAGICC"),
             (10, (results_table["Database"] == "AR6WG3"), "Use AR6 DB"),
             (9, (results_table["Database"] == "SR15CCBOX71") & (
-                    results_table["FaIR"] == True), "Include FaIR"),
+                    results_table["FaIR"] == True), "Include FaIR (default update)"),
             (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW"), "Use QRW"),
             (7, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
@@ -282,7 +301,7 @@ if not plot_distn:
             red_color="orangered",
             green_color="cornflowerblue",
             blue_color="mediumblue",
-            net_label="Updated budget",
+            net_label="Recommended update",
             formatting="{:,.0f}"
         )
         plt.xticks(rotation=45, horizontalalignment="right")
@@ -311,6 +330,7 @@ if not plot_distn:
     assert len(finalbug) == len(initialbug)
     plt.plot(hist_warm + initialbug["Future_warming"], initialbug["0.5"], color="mediumblue")
     plt.plot(hist_warm + finalbug["Future_warming"], finalbug["0.5"], color="orangered")
+    plt.axhline(0, c="darkgrey", linewidth=1, zorder=0)
     plt.fill_between(hist_warm + initialbug["Future_warming"], initialbug["0.33"], initialbug["0.66"], alpha=0.25, color="mediumblue")
     plt.fill_between(hist_warm + finalbug["Future_warming"], finalbug["0.33"],
                      finalbug["0.66"], alpha=0.25, color="orangered")
@@ -345,9 +365,19 @@ if plot_distn:
             id_vars=cols
         )
         sns.set_theme(style="whitegrid")
-        sns.violinplot(
+        violinplot = sns.violinplot(
             data=use_results, x="TCRE distribution", hue="ZEC asymmetry",
             y="Budget", cut=0, split=True, bw=0.18, inner="quartile",
         )
+
+        medians = use_results.groupby(['TCRE distribution', "ZEC asymmetry"], sort=False)['Budget'].median().round(0)
+        vertical_offset = use_results['Budget'].median() * 0.05  # offset from median for display
+        for xtick in violinplot.get_xticks():
+            violinplot.text(xtick+0.1, medians[xtick * 2], str(int(medians[xtick * 2])),
+                          horizontalalignment='center', size='small', color='w',
+                          weight='semibold')
+            violinplot.text(xtick-0.1, medians[xtick * 2 + 1], str(int(medians[xtick * 2 + 1])),
+                          horizontalalignment='center', size='small', color='w',
+                          weight='semibold')
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
 
