@@ -82,10 +82,11 @@ hsv = plt.get_cmap('Blues_r')
 imageinds = magicc_df_all.index
 plotnum = len(imageinds)
 chosen_inds = [
+    ("REMIND-MAgPIE 1.5", "World", "SSP2-19"),
     ("IMAGE 3.2", "World", "SSP1_SPA1_19I_D"),
     ("AIM/CGE 2.0", "World", "SSP1-26"),
     ("MESSAGE-GLOBIOM 1.0", "World", "SSP2-26"),
-    ("GCAM 5.3", "World", "R_MAC_95_n8")
+    ("GCAM 5.3", "World", "R_MAC_95_n8"),
 ]
 assert len([i for i in chosen_inds if i not in imageinds]) == 0
 colors = hsv(np.linspace(0, 1.0, len(chosen_inds) + 2))
