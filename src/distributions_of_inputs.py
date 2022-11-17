@@ -446,6 +446,62 @@ def preprocess_FaIR_data(
     fair_filestr,
     fair_filter,
 ):
+    import netCDF4
+    filename_dict = make_fair_filename_map(
+        desired_scenarios_db, fair_filestr, folder_all, folder_co2_only
+    )
+    allsummary = []
+    nonco2summary = []
+    desired_quants = [0.1, 0.167, 0.25, 0.33, 0.5, 0.66, 0.75, 0.833, 0.9]
+    if fair_filter:
+        # This is just stored as a column vector
+        filter_file = pd.read_csv(fair_filter, header=None)[0]
+        filter_file = [x == 1 for x in filter_file]
+    for orig, file in filename_dict.items():
+        open_link_all = netCDF4.Dataset(folder_all + file)
+        open_link_co2_only = netCDF4.Dataset(folder_co2_only + file)
+        if file[-3:] == ".nc":
+            var = "temp"
+            times = open_link_all.variables["time"][:]
+        elif file[-4:] == ".hdf":
+            var = "temperature"
+            zero_year = 1750
+            times = np.arange(
+                zero_year, zero_year + len(open_link_all.variables[var][:])
+            )
+        if fair_filter:
+            alltemps = pd.DataFrame(
+                open_link_all[var][:], index=times).loc[:, filter_file].quantile(desired_quants, axis=1)
+            noco2temps = (
+                        pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
+                    open_link_co2_only[var][:], index=times)).loc[:, filter_file].quantile(
+                desired_quants, axis=1)
+        else:
+            alltemps = pd.DataFrame(open_link_all[var][:], index=times).quantile(desired_quants, axis=1)
+            noco2temps = (pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
+                open_link_co2_only[var][:], index=times)).quantile(
+                desired_quants, axis=1)
+        desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
+        for col in ["scenario", "region", "model"]:
+            alltemps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
+            noco2temps.insert(0, col, desired_scenarios_db.loc[desired_ind, col])
+        alltemps["variable"] = [
+            magicc_tot_temp_variable.replace("50.0", str(i * 100)) for i in alltemps.index
+        ]
+        noco2temps["variable"] = [
+            magicc_nonco2_temp_variable.replace("50.0", str(i * 100)) for i in noco2temps.index
+        ]
+        allsummary.append(alltemps)
+        nonco2summary.append(noco2temps)
+    all_df = pd.concat(allsummary)
+    nonco2_df = pd.concat(nonco2summary)
+    all_df = all_df.loc[:, [c for c in all_df if (type(c) is str) or (c<=2100)]]
+    nonco2_df = nonco2_df.loc[:, [c for c in nonco2_df if (type(c) is str) or (c<=2100)]]
+    return (all_df, nonco2_df)
+
+
+def make_fair_filename_map(desired_scenarios_db, fair_filestr, folder_all,
+                           folder_co2_only):
     """
 
     :param folder_all: String denoting the folder containing the total warming runs. Ends in "/"
@@ -457,7 +513,6 @@ def preprocess_FaIR_data(
     :param fair_filter: String or None, if String finds a file with runs that pass each scenario
     :return:
     """
-    import netCDF4
     all_files = os.listdir(folder_all)
     CO2_only_files = os.listdir(folder_co2_only)
     assert all_files == CO2_only_files
@@ -504,6 +559,22 @@ def preprocess_FaIR_data(
             filename_dict[i] = compare_filename[0]
         else:
             print(f"No match found for {i}")
+    return filename_dict
+
+def preprocess_yearnorm_quantiles_of_fair_data(
+    folder_all,
+    folder_co2_only,
+    desired_scenarios_db,
+    magicc_nonco2_temp_variable,
+    magicc_tot_temp_variable,
+    fair_filestr,
+    fair_filter,
+    yearnorm,
+):
+    import netCDF4
+    filename_dict = make_fair_filename_map(
+        desired_scenarios_db, fair_filestr, folder_all, folder_co2_only
+    )
     allsummary = []
     nonco2summary = []
     desired_quants = [0.1, 0.167, 0.25, 0.33, 0.5, 0.66, 0.75, 0.833, 0.9]
@@ -525,15 +596,20 @@ def preprocess_FaIR_data(
             )
         if fair_filter:
             alltemps = pd.DataFrame(
-                open_link_all[var][:], index=times).loc[:, filter_file].quantile(desired_quants, axis=1)
-            noco2temps = (
-                        pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
-                    open_link_co2_only[var][:], index=times)).loc[:, filter_file].quantile(
+                open_link_all[var][:], index=times).loc[:, filter_file]
+            nonco2temps = pd.DataFrame(
+                    open_link_co2_only[var][:], index=times).loc[:, filter_file]
+            noco2temps = ((alltemps - alltemps.loc[yearnorm, :].mean(axis=0)) - (
+                    nonco2temps - nonco2temps.loc[yearnorm, :].mean(axis=0))).quantile(
                 desired_quants, axis=1)
+            alltemps = alltemps.quantile(desired_quants, axis=1)
         else:
-            alltemps = pd.DataFrame(open_link_all[var][:], index=times).quantile(desired_quants, axis=1)
-            noco2temps = (pd.DataFrame(open_link_all[var][:], index=times) - pd.DataFrame(
-                open_link_co2_only[var][:], index=times)).quantile(
+            alltemps = pd.DataFrame(open_link_all[var][:], index=times)
+            noco2temps = pd.DataFrame(open_link_co2_only[var][:], index=times)
+            noco2temps = ((alltemps - alltemps.loc[yearnorm, :].mean(axis=0)) - (
+                    noco2temps - noco2temps.loc[yearnorm, :].mean(axis=0))).quantile(
+                desired_quants, axis=1)
+            alltemps = (alltemps - alltemps.loc[yearnorm, :].mean(axis=0)).quantile(
                 desired_quants, axis=1)
         desired_ind = np.where([x == orig for x in desired_scenarios_db["filename"]])[0][0]
         for col in ["scenario", "region", "model"]:
@@ -543,7 +619,7 @@ def preprocess_FaIR_data(
             magicc_tot_temp_variable.replace("50.0", str(i * 100)) for i in alltemps.index
         ]
         noco2temps["variable"] = [
-            magicc_nonco2_temp_variable.replace("50.0", str(i * 100)) for i in alltemps.index
+            magicc_nonco2_temp_variable.replace("50.0", str(i * 100)) for i in noco2temps.index
         ]
         allsummary.append(alltemps)
         nonco2summary.append(noco2temps)
@@ -552,4 +628,3 @@ def preprocess_FaIR_data(
     all_df = all_df.loc[:, [c for c in all_df if (type(c) is str) or (c<=2100)]]
     nonco2_df = nonco2_df.loc[:, [c for c in nonco2_df if (type(c) is str) or (c<=2100)]]
     return (all_df, nonco2_df)
-

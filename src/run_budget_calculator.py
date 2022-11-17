@@ -231,7 +231,8 @@ magicc_non_co2_col = (
 )
 # The name of the peak temperature column output
 magicc_temp_col = "peak surface temperature (rel. to 2010-2019)"
-# The percentile to use for non-CO2 temperature change (for each scenario separately)
+# The percentile to use for non-CO2 temperature change (for each scenario separately).
+# This is a string, and must be 50.0 the first time FaIR data is run.
 nonco2_percentile = "50.0"
 # The names of the temperature variables in MAGICC files (also specifies the quantile)
 magicc_nonco2_temp_variable = "{} climate diagnostics|Raw Surface Temperature (GSAT)|Non-CO2|MAGICCv{}|{}th Percentile".format(
@@ -253,7 +254,11 @@ fair_savename = magicc_savename.replace("magicc", "fair")
 temp_offset_years = np.arange(2010, 2020, 1)
 # Use permafrost may be True, False or both (iterates over the list)
 List_use_permafrost = [False]
-
+# Should we normalise FaIR and MAGICC temperature trends to 2010-2019 before calculating
+# quantiles?
+norm_nonco2_years = False
+if norm_nonco2_years:
+    output_folder = output_folder + "ny/"
 # ______________________________________________________________________________________
 
 t0 = time.time()
@@ -300,23 +305,35 @@ for use_permafrost in List_use_permafrost:
         include_magicc = include_list[case_ind][0]
         include_fair = include_list[case_ind][1]
         if include_fair:
-            if os.path.exists(fair_folder + fair_processed_file.format("alltemp")):
-                nonco2_fair_db = pd.read_csv(fair_folder + fair_processed_file.format("nonco2temp"))
-                all_fair_db = pd.read_csv(fair_folder + fair_processed_file.format("alltemp"))
+            if os.path.exists(fair_folder + fair_processed_file.format("alltemp" + f"_normyears_{norm_nonco2_years}")):
+                nonco2_fair_db = pd.read_csv(fair_folder + fair_processed_file.format("nonco2temp" + f"_normyears_{norm_nonco2_years}"))
+                all_fair_db = pd.read_csv(fair_folder + fair_processed_file.format("alltemp" + f"_normyears_{norm_nonco2_years}"))
             else:
                 if not os.path.exists(fair_folder):
                     os.makedirs(fair_folder)
-                all_fair_db, nonco2_fair_db = distributions.preprocess_FaIR_data(
-                    fair_folder + fair_anthro_folder,
-                    fair_folder + fair_co2_only_folder,
-                    magicc_db_full.reset_index(),
-                    magicc_nonco2_temp_variable,
-                    magicc_tot_temp_variable,
-                    fair_filestr,
-                    fair_filter,
-                )
-                all_fair_db.to_csv(fair_folder + fair_processed_file.format("alltemp"))
-                nonco2_fair_db.to_csv(fair_folder + fair_processed_file.format("nonco2temp"))
+                if norm_nonco2_years:
+                    all_fair_db, nonco2_fair_db = distributions.preprocess_yearnorm_quantiles_of_fair_data(
+                        fair_folder + fair_anthro_folder,
+                        fair_folder + fair_co2_only_folder,
+                        magicc_db_full.reset_index(),
+                        magicc_nonco2_temp_variable,
+                        magicc_tot_temp_variable,
+                        fair_filestr,
+                        fair_filter,
+                        temp_offset_years,
+                    )
+                else:
+                    all_fair_db, nonco2_fair_db = distributions.preprocess_FaIR_data(
+                        fair_folder + fair_anthro_folder,
+                        fair_folder + fair_co2_only_folder,
+                        magicc_db_full.reset_index(),
+                        magicc_nonco2_temp_variable,
+                        magicc_tot_temp_variable,
+                        fair_filestr,
+                        fair_filter,
+                    )
+                all_fair_db.to_csv(fair_folder + fair_processed_file.format("alltemp" + f"_normyears_{norm_nonco2_years}"))
+                nonco2_fair_db.to_csv(fair_folder + fair_processed_file.format("nonco2temp" + f"_normyears_{norm_nonco2_years}"))
             if peak_version != "nonCO2AtPeakTotMagicc":
                 fair_peak_version = peak_version if peak_version != "nonCO2AtPeakAverage" else "nonCO2AtPeakTotIfNZ"
                 fair_vetting_file = vetted_scen_list_file

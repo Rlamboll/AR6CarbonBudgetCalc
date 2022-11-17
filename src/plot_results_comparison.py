@@ -44,7 +44,7 @@ for subfolder in subfolders:
                                                     Permafrost, zecsd, zecasym, NonCO2, peak, recem
                                                 )
                                                 results = pd.read_csv(
-                                                    results_folder + subfolder + filename
+                                                    results_folder + "o/" + subfolder + filename
                                                 )
                                             except FileNotFoundError:
                                                 # print("Didn't find " + filename)
@@ -123,6 +123,7 @@ if not plot_distn:
         cplot = sns.catplot(
             data=use_results, x="Model", hue="Updated", y="Budget", kind="box", hue_order=["no", "yes"], col="NonCO2"
         )
+        cplot.set(ylabel="Remaining Budget (GtCO$_2$)")
         for ax in cplot.axes.ravel():
             add_median_labels(ax)
         plt.savefig(
@@ -317,6 +318,7 @@ if not plot_distn:
         plt.xticks()
         plt.ylim([0, ycent[0] + errorhigh[0] + 20])
         plt.tight_layout()
+        plt.title(f"RCB for 50% chance of {round(futwarm + 1.07, 1)}$^o$C", y=1.0, pad=-14)
         plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}_errorbars_outer.png")
         plt.close()
 
@@ -334,9 +336,9 @@ if not plot_distn:
     plt.fill_between(hist_warm + initialbug["Future_warming"], initialbug["0.33"], initialbug["0.66"], alpha=0.25, color="mediumblue")
     plt.fill_between(hist_warm + finalbug["Future_warming"], finalbug["0.33"],
                      finalbug["0.66"], alpha=0.25, color="orangered")
-    plt.xlabel("Warming (C)")
+    plt.xlabel("Peak warming (C)")
     plt.ylabel("Remaining budget (GtCO$_2$)")
-    plt.legend(["WGI report", "Current estimate"], loc="upper left")
+    plt.legend(["AR6 WGI report", "Recommended estimate"], loc="upper left")
     plt.savefig(f"../Output/Plots/compare_updated_and_orig_budget_over_temps.png")
 
 
@@ -369,6 +371,7 @@ if plot_distn:
             data=use_results, x="TCRE distribution", hue="ZEC asymmetry",
             y="Budget", cut=0, split=True, bw=0.18, inner="quartile",
         )
+        violinplot.set(ylabel="Remaining Budget (GtCO$_2$)")
 
         medians = use_results.groupby(['TCRE distribution', "ZEC asymmetry"], sort=False)['Budget'].median().round(0)
         vertical_offset = use_results['Budget'].median() * 0.05  # offset from median for display
