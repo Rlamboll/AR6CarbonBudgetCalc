@@ -409,8 +409,7 @@ def _read_and_clean_summary_csv(
         scenario_cols, temp_df, temp_variable, warmingfile, vetted_scens, use_permafrost=None, sr15_rename=False,
 ):
     df = pd.read_csv(warmingfile)
-    # The following columns may be present and aren't wanted
-    # (Unnamed: 0 comes from an untitled index column)
+    # Additional columns may be present and aren't wanted
     df = _clean_columns_magicc(df, vetted_scens=vetted_scens, sr15_rename=sr15_rename)
     if use_permafrost is not None:
         if "permafrost" in df.columns:
@@ -436,6 +435,42 @@ def _read_and_clean_summary_csv(
     df = df.loc[[ind for ind in df.index if ind in temp_df.index]]
     df.columns = [int(col[:4]) for col in df.columns]
     return df
+
+def preprocess_MAGICC_data(
+    folder,
+    tot_magicc_file,
+    permafrost_str,
+    desired_scenarios_db,
+    temp_offset_years,
+    magicc_nonco2_temp_variable,
+    magicc_tot_temp_variable,
+):
+    feather_file = folder + permafrost_str + tot_magicc_file.split("/")[-1].replace("-nonco2_Raw-GSAT", "").replace(".csv", ".feather")
+    df = pd.read_feather(feather_file)
+    df_all = df[df["forcers"].values=="ALL"].set_index(["model", "run_id", "scenario", "region"])
+    df_anthro = df[df["forcers"].values=="ANTHROPOGENIC"].set_index(["model", "run_id", "scenario", "region"])
+    df_co2 = df[df["forcers"].values=="CO2"].set_index(["model", "run_id", "scenario", "region"])
+    del df
+    desired_quants = [0.1, 0.167, 0.25, 0.33, 0.5, 0.66, 0.75, 0.833, 0.9]
+    useyears = [str(x) for x in range(2010, 2101)]
+    allsummary = df_all[useyears].subtract(df_all.loc[:, [str(x) for x in temp_offset_years]].mean(axis=1), axis=0).groupby(
+        ["model", "scenario"]).quantile(desired_quants).reset_index()
+    nonco2 = (df_anthro[useyears] - df_co2[useyears])
+    nonco2summary = nonco2[useyears].subtract(nonco2.loc[:, [str(x) for x in temp_offset_years]].mean(axis=1), axis=0).groupby(
+        ["model", "scenario"]).quantile(desired_quants).reset_index()
+    allsummary = allsummary.merge(desired_scenarios_db[["model", "scenario"]], on=["model", "scenario"])
+    nonco2summary = nonco2summary.merge(desired_scenarios_db[["model", "scenario"]], on=["model", "scenario"])
+    # level_2 is the name given to the quantile value
+    nonco2summary["variable"] = [magicc_nonco2_temp_variable.replace("50.0", str(round(x*100, 1))) for x in nonco2summary["level_2"]]
+    allsummary["variable"] = [magicc_tot_temp_variable.replace("50.0", str(round(x*100, 1))) for x in allsummary["level_2"]]
+    allsummary = allsummary.drop("level_2", axis=1)
+    nonco2summary = nonco2summary.drop("level_2", axis=1)
+    nonco2summary["region"] = "World"
+    allsummary["region"] = "World"
+    allsummary["permafrost"] = "True" if permafrost_str == "permafrost_" else "False"
+    nonco2summary["permafrost"] = "True" if permafrost_str == "permafrost_" else "False"
+    return allsummary, nonco2summary
+
 
 def preprocess_FaIR_data(
     folder_all,

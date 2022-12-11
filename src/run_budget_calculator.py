@@ -53,7 +53,7 @@ earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
 recent_emissions = 277  # Default: 277
 # The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
-# correlated.
+# correlated. This is not used for most calculations
 recent_emissions_uncertainty = 1.8 * 8
 # We will present the budgets at these probability quantiles. (Switch is provided to
 # go between easy reading and data for plots)
@@ -259,12 +259,15 @@ List_use_permafrost = [False]
 norm_nonco2_years = False
 if norm_nonco2_years:
     output_folder = output_folder + "ny/"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 # ______________________________________________________________________________________
 
 t0 = time.time()
 if peak_version and (peak_version == "officialNZ"):
     assert vetted_scen_list_file is not None
 for use_permafrost in List_use_permafrost:
+    permafrost_str = ("permafrost_" if use_permafrost else "no_perm_")
     sr15_rename = (arsr == "sr15")
     if use_permafrost:
         non_co2_magicc_file = non_co2_magicc_file_permafrost
@@ -272,11 +275,25 @@ for use_permafrost in List_use_permafrost:
     else:
         non_co2_magicc_file = non_co2_magicc_file_no_permafrost
         tot_magicc_file = tot_magicc_file_nopermafrost
+    # If we want to calculate using quantiles normalised to 2010-2019 values we need to
+    # load different files, which may not exist
+    newallfile = tot_magicc_file[:-4] + permafrost_str + "yearnorm.csv"
+    newnonco2file = non_co2_magicc_file[:-4] + permafrost_str + "yearnorm.csv"
+    yearnorm_files = [newallfile, newnonco2file]
+    # Proceed with initial calculation
     magicc_peak_version = peak_version if peak_version not in [
         "nonCO2AtPeakTotMagicc", "nonCO2AtPeakAverage"] else "nonCO2AtPeakTotIfNZ"
+    if norm_nonco2_years and not any(
+            [not os.path.exists(X) for X in yearnorm_files]
+    ):
+        non_co2_magicc_file1 = newnonco2file
+        tot_magicc_file1 = newallfile
+    else:
+        non_co2_magicc_file1 = non_co2_magicc_file
+        tot_magicc_file1 = tot_magicc_file
     magicc_db_full = distributions.load_data_from_summary(
-        non_co2_magicc_file,
-        tot_magicc_file,
+        non_co2_magicc_file1,
+        tot_magicc_file1,
         emissions_file,
         magicc_non_co2_col,
         magicc_temp_col,
@@ -289,6 +306,38 @@ for use_permafrost in List_use_permafrost:
         vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
         sr15_rename=sr15_rename,
     )
+    # If we want to normalise by 2010-2019 values first, we must load the full set of
+    # values from file. This must be done after a run from the traditional file, since
+    # the list of scenarios is longer and must be restricted to match. After the first
+    # run, this isn't a problem.
+    if norm_nonco2_years and any([not os.path.exists(X) for X in yearnorm_files]):
+        allsummary, nonco2summary = distributions.preprocess_MAGICC_data(
+            input_folder,
+            tot_magicc_file,
+            permafrost_str,
+            magicc_db_full.reset_index(),
+            temp_offset_years,
+            magicc_nonco2_temp_variable,
+            magicc_tot_temp_variable,
+        )
+        allsummary.to_csv(newallfile, index=False)
+        nonco2summary.to_csv(newnonco2file, index=False)
+        magicc_db_full = distributions.load_data_from_summary(
+            newnonco2file,
+            newallfile,
+            emissions_file,
+            magicc_non_co2_col,
+            magicc_temp_col,
+            magicc_nonco2_temp_variable,
+            magicc_tot_temp_variable,
+            temp_offset_years,
+            magicc_peak_version,
+            permafrost=use_permafrost,
+            vetted_scen_list_file=vetted_scen_list_file,
+            vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
+            sr15_rename=sr15_rename,
+        )
+
     magicc_db = magicc_db_full[np.isfinite(magicc_db_full["hits_net_zero"])]
 
     if magicc_savename:
