@@ -51,7 +51,7 @@ earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2  # 7.1 * convert_PgC_to
 earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC_to_GtCO2
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
-recent_emissions = 277  # Default: 277
+recent_emissions = 326  # Default: 326 (until end of 2022)
 # The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
 # correlated. This is not used for most calculations
 recent_emissions_uncertainty = 1.8 * 8
@@ -138,7 +138,7 @@ if waterfall_plot:
     # Error bars on the non-CO2 component in the waterfall plot are calculated by
     # separate runs with different quantiles of non-CO2 warming.
     nonco2_waterfall_uncertainty = {
-        1.5:[82, 124.3], 2.0: [95, 178]
+        1.5: [82, 124.3], 2.0: [95, 178]
     }
 
 ###       Information for reading in files used to calculate non-CO2 component:
@@ -390,8 +390,8 @@ for use_permafrost in List_use_permafrost:
                 fair_peak_version = "officialNZ"
                 fair_vetting_file = magicc_db_full
             non_co2_dT_fair = distributions.load_data_from_summary(
-                fair_folder + fair_processed_file.format("nonco2temp"),
-                fair_folder + fair_processed_file.format("alltemp"),
+                fair_folder + fair_processed_file.format("nonco2temp" + f"_normyears_{norm_nonco2_years}"),
+                fair_folder + fair_processed_file.format("alltemp" + f"_normyears_{norm_nonco2_years}"),
                 emissions_file,
                 magicc_non_co2_col,
                 magicc_temp_col,
@@ -426,8 +426,8 @@ for use_permafrost in List_use_permafrost:
                         vetted_scen_list_file=vetted_scen_list_file,
                         vetted_scen_list_file_sheet=vetted_scen_list_file_sheet,
                         sr15_rename=sr15_rename,
-                        second_non_co2_file=fair_folder + fair_processed_file.format("nonco2temp"),
-                        second_tot_file=fair_folder + fair_processed_file.format("alltemp"),
+                        second_non_co2_file=fair_folder + fair_processed_file.format("nonco2temp" + f"_normyears_{norm_nonco2_years}"),
+                        second_tot_file=fair_folder + fair_processed_file.format("alltemp" + f"_normyears_{norm_nonco2_years}"),
                     )
                 master_all_non_co2 = master_all_non_co2.loc[
                     magicc_db.index, [magicc_non_co2_col, magicc_temp_col]
