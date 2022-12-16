@@ -12,7 +12,7 @@ response to cumulative emissions of CO2 (TCRE, parameters are input for a distri
 which may be either lognormal or normal)
 and unrepresented Earth feedbacks (a linear function of temperature change).   
 
-By changing the value `runver` this code can replicate the values in the 
+By changing the default values this code can replicate the values in the 
 IPCC reports for AR6 WGI and WGIII.  
 With `runver = sr15prewg1, zec_sd = 0, recent_emissions=209` this replicates Table 5.8 
 in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias et al, 
@@ -20,8 +20,10 @@ in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias 
 report. Note that values reported in the report are rounded to the nearest 10 PgC or 50 
 GtCO2 and the impact of ZEC standard deviation are tabulated separately. 
 
-With `runver = ar6wg3, zec_sd = 0, recent_emissions=209` this replicates the carbon 
+With `zec_sd = 0, recent_emissions=209` this replicates the carbon 
 budget results in chapter 3 (Riahi et al, 2022) of the IPCC AR6 WG3 report.
+
+With `peak_version = "nonCO2AtPeakAverage", List_use_permafrost=[True], norm_nonco2_years=True, nonlinear_nonco2 = "QRW"`
 
 The code expects to find data from MAGICC and/or FaIR simulations in the `InputData` 
 folder in the format output for a pyam dataframe. Alternatively unprocessed FaIR data 

@@ -20,7 +20,7 @@ plot_distn = ""
 # Files to read will have this basic structure:
 file_format = plot_distn + "budget_{}_magicc_{}_fair_{}_esf_{}pm26.7_likeli_0.6827_" \
               "nonCO2pc50.0_GtCO2_permaf_{}_zecsd_{}_asym_{}_hdT_1.07NonlinNonCO2_{}_{}_recEm{}.csv"
-cols = ["Database", "TCRE distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2"]
+cols = ["Database", "TCRE distribution", "MAGICC", "FaIR", "ESF", "Permafrost", "ZECsd", "ZEC asymmetry","NonCO2", ]
 results_table = pd.DataFrame(
     columns=cols
 )
@@ -31,40 +31,49 @@ for subfolder in subfolders:
                 for ESF in [7.1]:
                     for Permafrost in [True, False]:
                         for NonCO2 in ["all", "QRW"]:
-                            for zecsd in ["0", "0.19", "0.3"]:
+                            for zecsd in ["0.0", "0.19", "0.3"]:
                                 for zecasym in [True, False]:
                                     for peak in [
                                         "None", "peakNonCO2Warming", "nonCO2AtPeakTot",
                                         "officialNZ", "nonCO2AtPeakTotIfNZ", "nonCO2AtPeakAverage"
                                     ]:
-                                        for recem in ["277", "209"]:
-                                            try:
-                                                filename = file_format.format(
-                                                    distribution, MAGICC, FaIR, ESF,
-                                                    Permafrost, zecsd, zecasym, NonCO2, peak, recem
-                                                )
-                                                results = pd.read_csv(
-                                                    results_folder + "o/" + subfolder + filename
-                                                )
-                                            except FileNotFoundError:
-                                                # print("Didn't find " + filename)
-                                                continue
+                                        for recem in ["326", "209"]:
+                                            for normyear in [True, False]:
+                                                try:
 
-                                            for col, res in [
-                                                ("Database", subfolder[:-1].upper()),
-                                                ("TCRE distribution", distribution),
-                                                ("MAGICC", MAGICC),
-                                                ("FaIR", FaIR),
-                                                ("ESF", ESF),
-                                                ("Permafrost", Permafrost),
-                                                ("ZECsd", zecsd),
-                                                ("ZEC asymmetry", zecasym),
-                                                ("NonCO2", NonCO2),
-                                                ("peak", peak),
-                                                ("recem", recem)
-                                            ]:
-                                                results[col] = res
-                                            results_table = results_table.append(results)
+                                                    filename = file_format.format(
+                                                        distribution, MAGICC, FaIR,
+                                                        ESF,
+                                                        Permafrost, zecsd, zecasym,
+                                                        NonCO2, peak, recem
+                                                    )
+                                                    if normyear:
+                                                        results = pd.read_csv(
+                                                            results_folder + subfolder + "ny/" + filename
+                                                        )
+                                                    else:
+                                                        results = pd.read_csv(
+                                                            results_folder + subfolder + filename
+                                                        )
+                                                except FileNotFoundError:
+                                                    continue
+
+                                                for col, res in [
+                                                    ("Database", subfolder[:-1].upper()),
+                                                    ("TCRE distribution", distribution),
+                                                    ("MAGICC", MAGICC),
+                                                    ("FaIR", FaIR),
+                                                    ("ESF", ESF),
+                                                    ("Permafrost", Permafrost),
+                                                    ("ZECsd", zecsd),
+                                                    ("ZEC asymmetry", zecasym),
+                                                    ("NonCO2", NonCO2),
+                                                    ("peak", peak),
+                                                    ("recem", recem),
+                                                    ("normyear", normyear),
+                                                ]:
+                                                    results[col] = res
+                                                results_table = results_table.append(results)
 results_table = results_table.reset_index(drop=True)
 
 # Put in some defaults
@@ -76,8 +85,9 @@ as0 = False
 NonCO20 = "all"
 peak0 = "None"
 ZECas0 = False
-recem0 = "277"
+recem0 = "326"
 recemorig = "209"
+normyear0 = False
 
 if not plot_distn:
     for futwarm in [0.43, 0.93]:
@@ -90,7 +100,8 @@ if not plot_distn:
             (results_table["ESF"] == 7.1) &
             (results_table["peak"] == peak0) &
             (results_table["ZEC asymmetry"] == ZECas0) &
-            (results_table["recem"] == recem0),
+            (results_table["recem"] == recem0) &
+            (results_table["normyear"] == normyear0),
             :
         ].copy()
         use_results.loc[:, "Updated"] = ["yes" if y == "SR15CCBOX71" else "no" for y in use_results["Database"]]
@@ -165,72 +176,77 @@ if not plot_distn:
             "NonCO2": (results_table["NonCO2"] == NonCO20),
             "Peak": (results_table["peak"] == peak0),
             "recem": (results_table["recem"] == recem0),
+            "normyear": (results_table["normyear"] == normyear0),
         })
 
         baseline = results_table.iloc[
             [bool(x) for x in np.product(basebool, axis=1)]
         ]
         assert len(baseline) == 1
-        for ind, column, trueval, description in [
-            (0, "Database",       "SR15CCBOX71", "Use SR1.5 database"),
-            (1, "TCRE distribution", "lognormal", "Lognormal TCRE distribution"),
-            (5, "Permafrost",       True, "Include permafrost in MAGICC results"),
-            (6, "ZECsd",            "0", "ZEC standard deviation 0"),
-            (6, "ZECsd",            "0.3", "ZEC standard deviation 0.3"),
-            (7, "ZEC asymmetry",    True, "ZEC only impacts if positive"),
-            (8, "NonCO2",           "QRW", "Use QRW for non-CO$_2$ fit"),
-            (9, "peak",             "peakNonCO2Warming", "Maximum Non-CO$_2$ warming"),
-            (9, "peak",             "nonCO2AtPeakTot", "Non-CO$_2$ warming at peak total temp"),
-            (9, "peak",             "officialNZ", "Non-CO$_2$ warming at preharmonised NZ"),
-            (9, "peak",             "nonCO2AtPeakTotIfNZ", "Non-CO$_2$ warming at peak total, only NZ scenarios"),
-            (9, "peak",             "nonCO2AtPeakAverage", "Non-CO$_2$ warming at peak average total, only NZ scenarios"),
-            (10, "recem",           "209", "Recent emissions")
-        ]:
-            db = results_table.iloc[
-                [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
-                    (np.product(basebool.iloc[:, ind + 1:], axis=1)).astype(int) &
-                    (results_table[column] == trueval))]
-            ]
-            assert len(db) == 1, f"Missing scenario with {column} value {trueval}"
-            compare.append(
-                [futwarm + hist_warm, quant_list, description, (
-                        (db[quant_list].values - baseline[quant_list].values) /
-                        baseline[quant_list].values
-                )[0]]
-            )
-            abs_comp.append(
-                [futwarm + hist_warm, quant_list, description,
-                (db[quant_list].values - baseline[quant_list].values)[0]]
-            )
+        try:
+            for ind, column, trueval, description in [
+                (0, "Database",       "SR15CCBOX71", "Use SR1.5 database"),
+                (1, "TCRE distribution", "lognormal", "Lognormal TCRE distribution"),
+                (5, "Permafrost",       True, "Include permafrost in MAGICC results"),
+                (6, "ZECsd",            "0.0", "ZEC standard deviation 0"),
+                (6, "ZECsd",            "0.3", "ZEC standard deviation 0.3"),
+                (7, "ZEC asymmetry",    True, "ZEC only impacts if positive"),
+                (8, "NonCO2",           "QRW", "Use QRW for non-CO$_2$ fit"),
+                (9, "peak",             "peakNonCO2Warming", "Maximum Non-CO$_2$ warming"),
+                (9, "peak",             "nonCO2AtPeakTot", "Non-CO$_2$ warming at peak total temp"),
+                (9, "peak",             "officialNZ", "Non-CO$_2$ warming at preharmonised NZ"),
+                (9, "peak",             "nonCO2AtPeakTotIfNZ", "Non-CO$_2$ warming at peak total, only NZ scenarios"),
+                (9, "peak",             "nonCO2AtPeakAverage", "Non-CO$_2$ warming at peak average total, only NZ scenarios"),
+                (10, "recem",           "209", "Recent emissions"),
+                (11, "normyear",        True, "Non-CO2 normalised 2010-2019")
+            ]:
+                db = results_table.iloc[
+                    [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
+                        (np.product(basebool.iloc[:, ind + 1:], axis=1)).astype(int) &
+                        (results_table[column] == trueval))]
+                ]
+                assert len(db) == 1, f"Missing scenario with {column} value {trueval}"
+                compare.append(
+                    [futwarm + hist_warm, quant_list, description, (
+                            (db[quant_list].values - baseline[quant_list].values) /
+                            baseline[quant_list].values
+                    )[0]]
+                )
+                abs_comp.append(
+                    [futwarm + hist_warm, quant_list, description,
+                    (db[quant_list].values - baseline[quant_list].values)[0]]
+                )
 
-    comparedf = pd.DataFrame(
-        compare, columns=["Warming", "Quantile", "Change", "Percentage change"]
-    )
-    comparedf = comparedf.explode(["Quantile", "Percentage change"])
-    comparedf["Percentage change"] = [round(100 * x, 1) for x in comparedf["Percentage change"]]
-    comparedf = comparedf.pivot(
-        columns="Quantile",
-        index=[c for c in comparedf.columns if c not in ["Quantile", "Percentage change"]],
-        values="Percentage change"
-    ).reset_index()
-    comparedf.to_csv(results_folder + "relative_impact_of_changes.csv")
-    abschangecol = "Impact (GtCO2)"
-    abs_comp_df = pd.DataFrame(
-        abs_comp, columns=["Warming", "Quantile", "Change", abschangecol]
-    )
-    abs_comp_df = abs_comp_df.explode(["Quantile", abschangecol])
-    abs_comp_df["Impact (GtCO2)"] = [round(x, 0) for x in abs_comp_df["Impact (GtCO2)"]]
-    abs_comp_df = abs_comp_df.pivot(
-        columns="Quantile",
-        index=[c for c in abs_comp_df.columns if
-               c not in ["Quantile", abschangecol]],
-        values=abschangecol
-    ).reset_index()
-    abs_comp_df.to_csv(results_folder + "absolute_impact_of_changes.csv")
-    # Plot contribution of different factors
+            comparedf = pd.DataFrame(
+                compare, columns=["Warming", "Quantile", "Change", "Percentage change"]
+            )
+            comparedf = comparedf.explode(["Quantile", "Percentage change"])
+            comparedf["Percentage change"] = [round(100 * x, 1) for x in comparedf["Percentage change"]]
+            comparedf = comparedf.pivot(
+                columns="Quantile",
+                index=[c for c in comparedf.columns if c not in ["Quantile", "Percentage change"]],
+                values="Percentage change"
+            ).reset_index()
+            comparedf.to_csv(results_folder + "relative_impact_of_changes.csv")
+            abschangecol = "Impact (GtCO2)"
+            abs_comp_df = pd.DataFrame(
+                abs_comp, columns=["Warming", "Quantile", "Change", abschangecol]
+            )
+            abs_comp_df = abs_comp_df.explode(["Quantile", abschangecol])
+            abs_comp_df["Impact (GtCO2)"] = [round(x, 0) for x in abs_comp_df["Impact (GtCO2)"]]
+            abs_comp_df = abs_comp_df.pivot(
+                columns="Quantile",
+                index=[c for c in abs_comp_df.columns if
+                       c not in ["Quantile", abschangecol]],
+                values=abschangecol
+            ).reset_index()
+            abs_comp_df.to_csv(results_folder + "absolute_impact_of_changes.csv")
+            # Plot contribution of different factors
+        except AssertionError:
+            print(f"Not enough values to calculate {column} value {trueval}")
 
     for (futwarm, quant_want) in [(0.43, "0.5"), (0.93, "0.5")]:
-        origbool = basebool = pd.DataFrame({
+        basebool = pd.DataFrame({
             "Future_warming": np.isclose(results_table["Future_warming"], futwarm),
             "TCRE distribution": (results_table["TCRE distribution"]=="normal"),
             "MAGICC": results_table["MAGICC"],
@@ -241,14 +257,14 @@ if not plot_distn:
             "Peak": (results_table["peak"] == peak0),
             "NonCO2": (results_table["NonCO2"] == NonCO20),
             "FaIR": (results_table["FaIR"] == False),
+            "recem": (results_table["recem"] == recemorig),
             "Database": (results_table["Database"] == "SR15PREWG1"),
-            "recem": (results_table["recem"]==recemorig)
+            "normyear": (results_table["normyear"] == normyear0)
         })
 
         origline = results_table.iloc[
-            [bool(x) for x in np.product(origbool, axis=1)]
+            [bool(x) for x in np.product(basebool, axis=1)]
         ]
-
         yvals = [origline[quant_want].iloc[0]]
         xvals = ["AR6 WGI"]
         quanthigh = "0.33"
@@ -256,43 +272,38 @@ if not plot_distn:
         errorlow = [yvals[0] - origline[quantlow].iloc[0]]
         errorhigh = [origline[quanthigh].iloc[0]-yvals[0]]
         ycent = yvals.copy()
-        # Update recent emissions
-        ind = 11
-        db = results_table.iloc[
-            [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
-                               (results_table["recem"] == recem0))]
-        ]
-        assert len(db) == 1
         plt.close()
-        yvals.append(db[quant_want].iloc[0] - origline[quant_want].iloc[0])
-        xvals.append("Recent emissions")
-        ycent.append(db[quant_want].iloc[0])
-        errorhigh.append(db[quanthigh].iloc[0] - db[quant_want].iloc[0])
-        errorlow.append(db[quant_want].iloc[0] - db[quantlow].iloc[0])
-        dbold = db.copy()
-        # Use FaIR
         for (ind, condition, xlabel) in [
-            (10, (results_table["Database"] == "SR15CCBOX71"), "Update MAGICC"),
-            (10, (results_table["Database"] == "AR6WG3"), "Use AR6 DB"),
+            (11, (results_table["Database"] == "SR15CCBOX71") & (results_table["normyear"] == normyear0), "Update MAGICC"),
+            (11, (results_table["Database"] == "AR6WG3"), "Use AR6 DB"),
+            (10, ((results_table["Database"] == "AR6WG3") & (results_table["recem"] == recem0)) & (results_table["normyear"] == normyear0), "Recent emissions"),
             (9, (results_table["Database"] == "SR15CCBOX71") & (
-                    results_table["FaIR"] == True), "Include FaIR (default update)"),
+                    results_table["FaIR"] == True) & (results_table["recem"] == recem0) & (results_table["normyear"] == normyear0), "Include FaIR"),
             (8, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
-                (results_table["NonCO2"] == "QRW"), "Use QRW"),
+                (results_table["NonCO2"] == "QRW") & (results_table["recem"] == recem0) & (results_table["normyear"] == normyear0), "Use QRW"),
             (7, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
-                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage"), "Change non-CO$_2$ time"),
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage")
+                & (results_table["recem"] == recem0) & (results_table["normyear"] == normyear0), "Change non-CO$_2$ time"),
             (6, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
                 (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage") &
-                (results_table["Permafrost"] == True), "Permafrost in MAGICC")
+                (results_table["Permafrost"] == True) & (results_table["recem"] == recem0) & (results_table["normyear"] == normyear0), "Permafrost in MAGICC"),
+            (6, (results_table["Database"] == "AR6WG3") & (results_table["FaIR"] == True) &
+                (results_table["NonCO2"] == "QRW") & (results_table["peak"]=="nonCO2AtPeakAverage") &
+                (results_table["Permafrost"] == True) & (results_table["recem"] == recem0) &
+                (results_table["normyear"] == True), "Normalise non-CO$_2$ years")
         ]:
             db = results_table.iloc[
                 [bool(x) for x in (np.product(basebool.iloc[:, 0:ind], axis=1).astype(int) &
-               (results_table["recem"] == recem0) & condition)]
+               condition)]
             ]
             assert len(db) == 1
             ycent.append(db[quant_want].iloc[0])
             errorhigh.append(db[quanthigh].iloc[0] - db[quant_want].iloc[0])
             errorlow.append(db[quant_want].iloc[0] - db[quantlow].iloc[0])
-            yvals.append(db[quant_want].iloc[0] - dbold[quant_want].iloc[0])
+            try:
+                yvals.append(db[quant_want].iloc[0] - dbold[quant_want].iloc[0])
+            except NameError:
+                yvals.append(db[quant_want].iloc[0] - yvals[-1])
             xvals.append(xlabel)
             dbold = db.copy()
 
@@ -307,6 +318,7 @@ if not plot_distn:
         )
         plt.xticks(rotation=45, horizontalalignment="right")
         plt.ylabel("Remaining budget (GtCO$_2$)")
+        del dbold
         #plt.errorbar(xvals, ycent, yerr=np.array([errorlow, errorhigh]), fmt='.', alpha=0.5, c="lightblue",)
         plt.errorbar(xvals[0], ycent[0], yerr=np.array([[errorlow[0]], [errorhigh[0]]]), fmt='.', c="lightblue", alpha=0.5)
         plt.errorbar(xvals, ycent, yerr=np.array([errorlow, errorhigh]), fmt='.',
