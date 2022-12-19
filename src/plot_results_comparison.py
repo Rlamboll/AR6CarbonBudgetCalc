@@ -396,3 +396,27 @@ if plot_distn:
                           weight='semibold')
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
 
+# Calculate the difference made by the change in non-CO2 quantiles:
+
+inds = ["0.17", "0.5", "0.83"]
+for nonlin, peak, perm in [("all", "None", False), ("QRW", "nonCO2AtPeakAverage", True)]:
+    for temp in [1.5, 2]:
+        resqant = {}
+        for quantile_str in ["83.3", "50.0", "16.7"]:
+            filename = plot_distn + f'budget_normal_magicc_True_fair_True_esf_{ESF0}pm26.7_likeli_0.6827_nonCO2pc{quantile_str}_' \
+                f'GtCO2_permaf_{perm}_zecsd_{zec_sd0}_asym_{ZECas0}_hdT_1.07NonlinNonCO2_{nonlin}_{peak}_recEm{recem0}.csv'
+            results = pd.read_csv(
+                results_folder + "ar6wg3/" + "ny/" + filename
+            )
+            resqant[quantile_str] = results.loc[[round(r, 2) == temp for r in results.dT_targets], inds].values.squeeze()
+        resqant = pd.DataFrame(resqant, index=inds)
+        print(f"nonlin {nonlin} peak {peak}, perm {perm}, temp {temp}: ")
+        print(resqant)
+        negnonco2 = resqant['16.7'] - resqant['50.0']
+        posnonco2 = resqant['50.0'] - resqant['83.3']
+        print(f"negative non-CO2 error: {negnonco2['0.5']}")
+        print(f"positive non-CO2 error: {posnonco2['0.5']}")
+        negcombined = (negnonco2["0.5"]**2 + (resqant.loc["0.17", "50.0"] - resqant.loc["0.5", "50.0"])**2)**0.5
+        poscombined = (posnonco2["0.5"]**2 + (resqant.loc["0.5", "50.0"] - resqant.loc["0.83", "50.0"])**2)**0.5
+        print(f"total negative error {negcombined}")
+        print(f"total positive error {poscombined}")
