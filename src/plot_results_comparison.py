@@ -8,6 +8,7 @@ import seaborn as sns
 
 results_folder = "../Output/"
 subfolders = ["sr15prewg1/", "ar6wg3/", "sr15ccbox71/"]
+nonco2_model_uncertainty = 100
 
 # The results will go into the output folder, in this subfolder:
 plot_folder = "Plots/"
@@ -368,7 +369,7 @@ if plot_distn:
             (results_table["recem"] == recem0),
             :
         ]
-        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets", "peak", "recem"])
+        use_results = use_results.set_index(cols + ["Future_warming", "dT_targets", "peak", "recem", "normyear"])
         use_results.columns = [str(round(float(c), 4)) for c in use_results.columns]
         use_results = use_results.sort_index(axis=1)
 
@@ -397,26 +398,28 @@ if plot_distn:
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
 
 # Calculate the difference made by the change in non-CO2 quantiles:
-
-inds = ["0.17", "0.5", "0.83"]
-for nonlin, peak, perm in [("all", "None", False), ("QRW", "nonCO2AtPeakAverage", True)]:
-    for temp in [1.5, 2]:
-        resqant = {}
-        for quantile_str in ["83.3", "50.0", "16.7"]:
-            filename = plot_distn + f'budget_normal_magicc_True_fair_True_esf_{ESF0}pm26.7_likeli_0.6827_nonCO2pc{quantile_str}_' \
-                f'GtCO2_permaf_{perm}_zecsd_{zec_sd0}_asym_{ZECas0}_hdT_1.07NonlinNonCO2_{nonlin}_{peak}_recEm{recem0}.csv'
-            results = pd.read_csv(
-                results_folder + "ar6wg3/" + "ny/" + filename
-            )
-            resqant[quantile_str] = results.loc[[round(r, 2) == temp for r in results.dT_targets], inds].values.squeeze()
-        resqant = pd.DataFrame(resqant, index=inds)
-        print(f"nonlin {nonlin} peak {peak}, perm {perm}, temp {temp}: ")
-        print(resqant)
-        negnonco2 = resqant['16.7'] - resqant['50.0']
-        posnonco2 = resqant['50.0'] - resqant['83.3']
-        print(f"negative non-CO2 error: {negnonco2['0.5']}")
-        print(f"positive non-CO2 error: {posnonco2['0.5']}")
-        negcombined = (negnonco2["0.5"]**2 + (resqant.loc["0.17", "50.0"] - resqant.loc["0.5", "50.0"])**2)**0.5
-        poscombined = (posnonco2["0.5"]**2 + (resqant.loc["0.5", "50.0"] - resqant.loc["0.83", "50.0"])**2)**0.5
-        print(f"total negative error {negcombined}")
-        print(f"total positive error {poscombined}")
+if plot_distn == "":
+    inds = ["0.17", "0.5", "0.83"]
+    for nonlin, peak, perm in [("all", "None", False), ("QRW", "nonCO2AtPeakAverage", True)]:
+        for temp in [1.5, 2]:
+            resqant = {}
+            for quantile_str in ["83.3", "50.0", "16.7"]:
+                filename = plot_distn + f'budget_normal_magicc_True_fair_True_esf_{ESF0}pm26.7_likeli_0.6827_nonCO2pc{quantile_str}_' \
+                    f'GtCO2_permaf_{perm}_zecsd_{zec_sd0}_asym_{ZECas0}_hdT_1.07NonlinNonCO2_{nonlin}_{peak}_recEm{recem0}.csv'
+                results = pd.read_csv(
+                    results_folder + "ar6wg3/" + "ny/" + filename
+                )
+                resqant[quantile_str] = results.loc[[round(r, 2) == temp for r in results.dT_targets], inds].values.squeeze()
+            resqant = pd.DataFrame(resqant, index=inds)
+            print(f"\n nonlin {nonlin} peak {peak}, perm {perm}, temp {temp}: ")
+            print(resqant)
+            negnonco2 = resqant['16.7'] - resqant['50.0']
+            posnonco2 = resqant['50.0'] - resqant['83.3']
+            bestest = resqant.loc["0.5", "50.0"]
+            print(f"negative non-CO2 error: {negnonco2['0.5']}")
+            print(f"positive non-CO2 error: {posnonco2['0.5']}")
+            negcombined = (negnonco2["0.5"]**2 + (resqant.loc["0.17", "50.0"] - bestest)**2 + nonco2_model_uncertainty**2)**0.5
+            poscombined = (posnonco2["0.5"]**2 + (bestest - resqant.loc["0.83", "50.0"])**2 + nonco2_model_uncertainty**2)**0.5
+            print(f"total negative error {negcombined}")
+            print(f"total positive error {poscombined}")
+            print(f"Range: {bestest} ({bestest-negcombined}-{bestest+poscombined})")

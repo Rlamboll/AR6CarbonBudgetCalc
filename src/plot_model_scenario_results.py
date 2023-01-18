@@ -26,7 +26,7 @@ if not os.path.exists(plot_folder):
     os.makedirs(plot_folder)
 
 # Files to read will have this basic structure:
-file_format ="{}normal_magicc_{}_fair_{}_esf_7.1pm26.7_likeli_0.6827_nonCO2pc50.0_GtCO2_permaf_False_zecsd_0.19_asym_False_hdT_1.07NonlinNonCO2_{}_{}_recEm277.csv"
+file_format ="{}normal_magicc_{}_fair_{}_esf_7.1pm26.7_likeli_0.6827_nonCO2pc50.0_GtCO2_permaf_False_zecsd_0.19_asym_False_hdT_1.07NonlinNonCO2_{}_{}_recEm326.csv"
 cols = ["Database", "NonCO2"]
 historic_warming = 1.07
 results_table = pd.DataFrame(
