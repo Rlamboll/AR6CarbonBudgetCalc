@@ -8,7 +8,8 @@ import seaborn as sns
 
 results_folder = "../Output/"
 subfolders = ["sr15prewg1/", "ar6wg3/", "sr15ccbox71/"]
-nonco2_model_uncertainty = 100
+# Bonus uncertainty added on top of everything else:
+nonco2_model_uncertainty = 0
 
 # The results will go into the output folder, in this subfolder:
 plot_folder = "Plots/"

@@ -53,7 +53,7 @@ earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
 recent_emissions = 326  # Default: 326 (until end of 2022)
 # The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
-# correlated. This is not used for most calculations
+# correlated. This is not used for most calculations, just for the waterfall plot.
 recent_emissions_uncertainty = 1.8 * 8
 # We will present the budgets at these probability quantiles. (Switch is provided to
 # go between easy reading and data for plots)
@@ -131,7 +131,8 @@ if for_each_model:
 os.makedirs(output_folder, exist_ok=True)
 # if not None, do a waterfall plot of the contributions of each component to the budget
 # and save it with this string.
-# If not none, should have {} for magicc, Fair, peak, temp, recem, ZEC, permafrost. E.g.
+# If not None, the string should have {} for magicc, Fair, peak, temp, recem, ZEC,
+# permafrost. E.g.
 # "waterfall_contributions_MAGICC_{}_FaIR_{}_peak{}_temp{}_recem{}_ZEC{}_pf{}.png"
 waterfall_plot = None  # default: None
 if waterfall_plot:
