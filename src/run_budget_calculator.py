@@ -29,8 +29,9 @@ zec_asym = False  # Default: False
 historical_dT = 1.07  # Default: 1.07
 # Uncertainty in this value (Units: C). Only used if doing waterfall plot.
 historical_uncertainty = 0.2
-# The distribution of the TCRE function - either "normal", "lognormal mean match" or
-# "lognormal". The latter two cases are lognormal distributions, in the first
+# The distribution of the TCRE function - either "normal", "posnormal", "lognormal mean
+# match", or "lognormal". "posnormal" is the normal distribution but with values below 0
+# replaced with 10^-10. The latter two cases are lognormal distributions, in the first
 # case matching the mean and sd of the normal distribution which fits the likelihood,
 # in the second case matching the likelihood limits itself but exhibiting some skew.
 tcre_dist = "normal"  # Default: "normal"

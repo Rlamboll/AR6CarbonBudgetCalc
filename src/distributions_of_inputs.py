@@ -18,9 +18,10 @@ def tcre_distribution(low, high, likelihood, n_return, tcre_dist):
         The number of values to return
     :param tcre_dist: Str
         Either "normal" for a normal distribution, "lognormal" for a lognormal
-        distribution, or "lognormal mean match", for a lognormal but with the same mean
+        distribution, "lognormal mean match", for a lognormal but with the same mean
         and standard deviation as a normal distribution fitting the same
-        high/low/likelihood values.
+        high/low/likelihood values or "posnormal" for a normal distribution but with
+        values below 0 set equal to a small positive number (10^-10).
     :return:
     """
     assert high > low, "High and low limits are the wrong way around"
@@ -54,6 +55,15 @@ def tcre_distribution(low, high, likelihood, n_return, tcre_dist):
         mu = 0.5 * np.log(low * high)
         sigma = 0.5 * np.log(high / low)
         return np.random.lognormal(mean=mu, sigma=sigma, size=n_return)
+    elif tcre_dist == "posnormal":
+        assert high > 0
+        assert low > 0
+        mean = (high + low) / 2
+        z = scipy.stats.norm.ppf((1 + likelihood) / 2)
+        sd = (high - mean) / z
+        set1 = np.random.normal(mean, sd, n_return)
+        set1[set1<=0] = 1e-10
+        return set1
     # If you haven't returned yet, something went wrong.
     raise ValueError(
         "tcre_dist must be either normal, lognormal mean match or lognormal, it was {}".format(
