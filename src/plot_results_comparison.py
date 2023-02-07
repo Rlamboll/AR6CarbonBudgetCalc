@@ -5,6 +5,8 @@ import os
 import pandas as pd
 import waterfall_chart as waterfall
 import seaborn as sns
+from scipy.stats import genextreme, mstats
+from scipy.optimize import minimize
 
 results_folder = "../Output/"
 subfolders = ["sr15prewg1/", "ar6wg3/", "sr15ccbox71/"]
@@ -399,8 +401,17 @@ if plot_distn:
         plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
 
 # Calculate the difference made by the change in non-CO2 quantiles:
+def normgev(x):
+    #return skewnorm(x[0], x[1] * 100, x[2] * 100)
+    return genextreme(x[0], x[1] * 100, x[2] * 100)
+
+def scorefuncGEV(inputvect, vals, quants):
+    return sum((normgev(inputvect).cdf(vals) - quants) ** 2)
+
 if plot_distn == "":
-    inds = ["0.17", "0.5", "0.83"]
+    inds = ["0.1", "0.17", "0.33", "0.5", "0.66", "0.83", "0.9"]
+    quants_co2 = [0.9, 0.83, 0.67, 0.5, 0.34, 0.17, 0.1]
+    quants_nonco2 = [0.167, 0.5, 0.833]
     for nonlin, peak, perm in [("all", "None", False), ("QRW", "nonCO2AtPeakAverage", True)]:
         for temp in [1.5, 2]:
             resqant = {}
@@ -412,15 +423,21 @@ if plot_distn == "":
                 )
                 resqant[quantile_str] = results.loc[[round(r, 2) == temp for r in results.dT_targets], inds].values.squeeze()
             resqant = pd.DataFrame(resqant, index=inds)
+            # set up initial Generalised Extreme Value distn by assuming points are
+            # uniformly sampled. We normalise the latter two values by 100.
+            vect0 = [0.6, 3 if temp==1.5 else 8, 4]
+            resgev = minimize(scorefuncGEV, x0=vect0, args=(resqant.loc["0.5"], quants_nonco2))
+            assert resgev.success
+            assert np.allclose(normgev(resgev.x).cdf(resqant.loc["0.5"]), quants_nonco2, atol=0.08)
+            vect0 = [0.8, 2, 3]
+            co2res = minimize(scorefuncGEV, x0=vect0, args=(resqant.loc[:, "50.0"], quants_co2))
+            assert co2res.success
+            assert np.allclose(normgev(co2res.x).cdf(
+                    resqant.loc[:, "50.0"]), quants_co2, atol=0.05)
+            genNum = 1000000
+            combined = normgev(co2res.x).rvs(genNum) + normgev(resgev.x).rvs(genNum) - resqant.loc["0.5", "50.0"]
+
             print(f"\n nonlin {nonlin} peak {peak}, perm {perm}, temp {temp}: ")
+            print(
+                f"Combined error : {resqant.loc['0.5', '50.0']} (17-83% uncertainty: {mstats.mquantiles(combined, [0.17, 0.5, 0.83], alphap=1/3, betap=1/3)})")
             print(resqant)
-            negnonco2 = resqant['16.7'] - resqant['50.0']
-            posnonco2 = resqant['50.0'] - resqant['83.3']
-            bestest = resqant.loc["0.5", "50.0"]
-            print(f"negative non-CO2 error: {negnonco2['0.5']}")
-            print(f"positive non-CO2 error: {posnonco2['0.5']}")
-            negcombined = (negnonco2["0.5"]**2 + (resqant.loc["0.17", "50.0"] - bestest)**2 + nonco2_model_uncertainty**2)**0.5
-            poscombined = (posnonco2["0.5"]**2 + (bestest - resqant.loc["0.83", "50.0"])**2 + nonco2_model_uncertainty**2)**0.5
-            print(f"total negative error {negcombined}")
-            print(f"total positive error {poscombined}")
-            print(f"Range: {bestest} ({bestest-negcombined}-{bestest+poscombined})")
