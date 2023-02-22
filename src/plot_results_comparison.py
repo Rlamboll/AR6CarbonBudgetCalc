@@ -29,7 +29,7 @@ results_table = pd.DataFrame(
     columns=cols
 )
 for subfolder in subfolders:
-    for distribution in ["normal", "lognormal"]:
+    for distribution in ["normal", "lognormal", "posnormal"]:
         for MAGICC in [True, False]:
             for FaIR in [True, False]:
                 for ESF in [7.1]:
@@ -191,6 +191,7 @@ if not plot_distn:
             for ind, column, trueval, description in [
                 (0, "Database",       "SR15CCBOX71", "Use SR1.5 database"),
                 (1, "TCRE distribution", "lognormal", "Lognormal TCRE distribution"),
+                (1, "TCRE distribution", "posnormal", "Positive-only normal TCRE distribution"),
                 (5, "Permafrost",       True, "Include permafrost in MAGICC results"),
                 (6, "ZECsd",            "0.0", "ZEC standard deviation 0"),
                 (6, "ZECsd",            "0.3", "ZEC standard deviation 0.3"),
