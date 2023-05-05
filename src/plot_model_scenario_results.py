@@ -7,7 +7,7 @@ import seaborn as sns
 # Plots the results of running the model-and-SSP specific budgets.
 
 # Database should be the foldername where files are stored, e.g. ar6wg3 or sr15ccbox71
-database = "ar6wg3"
+database = "sr15ccbox71"
 results_folder = f"../Output/{database}/"
 subfolders0 = ["each/SSP1/", "each/SSP2/", "each/SSP3/", "each/SSP4/", "each/SSP5/"]
 startstrings = []
@@ -92,6 +92,7 @@ plt.close()
 sns.catplot(
     data=to_plot, x="Scenario", hue="Model", y="Budget", kind="box", aspect=1.2
 )
+plt.ylabel("Budget  (GtCO$_2$)")
 plt.savefig(plot_folder + "scenario_budgets_catplot.png")
 # Also plot this the other way around
 plt.close()
@@ -99,6 +100,7 @@ sns.catplot(
     data=to_plot, x="Model", hue="Scenario", y="Budget", kind="box", aspect=1.2,
     legend=False
 )
+plt.ylabel("Budget  (GtCO$_2$)")
 plt.xticks(rotation=45, horizontalalignment="right")
 plt.tight_layout()
 plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
