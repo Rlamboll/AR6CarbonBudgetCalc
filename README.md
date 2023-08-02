@@ -18,13 +18,18 @@ With `runver = sr15prewg1, zec_sd = 0, recent_emissions=209` this replicates Tab
 in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias et al, 
 2021) and Table SPM.2 of the Summary for Policymakers (IPCC, 2021) of the IPCC AR6 WGI 
 report. Note that values reported in the report are rounded to the nearest 10 PgC or 50 
-GtCO2 and the impact of ZEC standard deviation are tabulated separately. 
+GtCO2 and the impact of ZEC standard deviation are tabulated separately. All the 
+reports use the MAGICC True, FaIR False scenario.  
 
 With `zec_sd = 0, recent_emissions=209` this replicates the carbon 
 budget results in chapter 3 (Riahi et al, 2022) of the IPCC AR6 WG3 report.
 
 With `peak_version = "nonCO2AtPeakAverage", List_use_permafrost=[True], norm_nonco2_years=True, nonlinear_nonco2 = "QRW"`
 this replicates our recommended update.
+
+With `recent_emissions=204, historical_dT = 1.15 ` this replicates the results in 
+"Indicators of Global Climate Change 2022: annual update".
+
 The code expects to find data from MAGICC and/or FaIR simulations in the `InputData` 
 folder in the format output for a pyam dataframe. Alternatively unprocessed FaIR data 
 may be provided as folders of .nc or .hfd files, which can be processed into pyam format.
@@ -37,6 +42,8 @@ Shukla, P.R. and Skea, J. and Slade, R. and Khourdajie, A. Al and van Diemen, R.
 Canadell, J.G., Monteiro, P.M.S., Costa, M.H., Cotrim da Cunha, L., Cox, P.M., Eliseev, A.V., Henson, S., Ishii, M., Jaccard, S., Koven, C., Lohila, A., Patra, P.K., Piao, S., Rogelj, J., Syampungani, S., Zaehle, S., Zickfeld, K., 2021. Global Carbon and other Biogeochemical Cycles and Feedbacks, in: Masson-Delmotte, V., Zhai, P., Pirani, A., Connors, S.L., Péan, C., Berger, S., Caud, N., Chen, Y., Goldfarb, L., Gomis, M.I., Huang, M., Leitzell, K., Lonnoy, E., Matthews, J.B.R., Maycock, T.K., Waterfield, T., Yelekçi, O., Yu, R., Zhou, B. (Eds.), Climate Change 2021: The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change. Cambridge University Press. 
 
 IPCC, 2021. Summary for Policymakers. In: Climate Change 2021: The Physical Science Basis. Contribution of Working Group I to the Sixth Assessment Report of the Intergovernmental Panel on Climate Change. 
+
+Forster, P. M., Smith, C. J., Walsh, T., Lamb, W. F., Lamboll, R., Hauser, M., Ribes, A., Rosen, D., Gillett, N., Palmer, M. D., Rogelj, J., von Schuckmann, K., Seneviratne, S. I., Trewin, B., Zhang, X., Allen, M., Andrew, R., Birt, A., Borger, A., Boyer, T., Broersma, J. A., Cheng, L., Dentener, F., Friedlingstein, P., Gutiérrez, J. M., Gütschow, J., Hall, B., Ishii, M., Jenkins, S., Lan, X., Lee, J.-Y., Morice, C., Kadow, C., Kennedy, J., Killick, R., Minx, J. C., Naik, V., Peters, G. P., Pirani, A., Pongratz, J., Schleussner, C.-F., Szopa, S., Thorne, P., Rohde, R., Corradi, M. R., Schumacher, D., Vose, R., Zickfeld, K., Masson-Delmotte, V. and Zhai, P.: Indicators of Global Climate Change 2022: annual update of large-scale indicators of the state of the climate system and human influence, Earth Syst. Sci. Data, 15(6), 2295–2327, doi:10.5194/ESSD-15-2295-2023, 2023.
 
 When re-using the data of global warming induced by non-CO2 species, please reference Cross-Chapter Box 7.1 (Nicholls et al, 2021).  
 
