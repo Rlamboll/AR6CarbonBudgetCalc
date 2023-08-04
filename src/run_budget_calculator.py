@@ -263,6 +263,10 @@ if norm_nonco2_years:
     output_folder = output_folder + "ny/"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
+# Optionally save the tabulated nonCO2 warming contribution to this location in Output.
+# Needs formattable points for MAGICC, FaIR, peak, permafrost and nonCO2 linestyle, e.g.
+# "tabulated_nonco2_MAGICC{}_FaIR{}_peak{}_perm{}_{}.csv", or None.
+nonco2_savename = None  # None
 # ______________________________________________________________________________________
 
 t0 = time.time()
@@ -527,7 +531,21 @@ for use_permafrost in List_use_permafrost:
                     magicc_non_co2_col,
                     magicc_temp_col,
                 )
-
+            tcres = distributions.tcre_distribution(
+                tcre_low, tcre_high, likelihood, n_loops, tcre_dist
+            )
+            if nonco2_savename:
+                annotated_nonco2_dts = pd.DataFrame({
+                    "Remaining Temp": non_co2_dTs.index.values.round(2),
+                    "Total warming": dT_targets.round(1),
+                    "NonCO2 temperature": non_co2_dTs.round(3),
+                    "CO2 equivalent": (non_co2_dTs / (tcre_low + tcre_high) * 2).round()
+                })
+                annotated_nonco2_dts.to_csv(
+                    output_folder + nonco2_savename.format(
+                        include_magicc, include_fair, peak_version, use_permafrost, nonlinear_nonco2
+                    )
+                )
             for dT_target in dT_targets:
                 earth_feedback_co2 = budget_func.calculate_earth_system_feedback_co2(
                     dT_target - historical_dT,
@@ -536,9 +554,6 @@ for use_permafrost in List_use_permafrost:
                     n_loops,
                 )
                 non_co2_dT = non_co2_dTs.loc[dT_target - historical_dT]
-                tcres = distributions.tcre_distribution(
-                    tcre_low, tcre_high, likelihood, n_loops, tcre_dist
-                )
                 zec = distributions.zec_dist(zec_mean, zec_sd, zec_asym, n_loops)
                 budgets = budget_func.calculate_budget(
                     dT_target, zec, historical_dT, non_co2_dT, tcres, earth_feedback_co2
