@@ -142,7 +142,7 @@ if not plot_distn:
         for ax in cplot.axes.ravel():
             add_median_labels(ax)
         plt.savefig(
-            results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}.png")
+            results_folder + plot_folder + f"updates_Distn_ftwarm{futwarm}.pdf")
         for quant in ["0.5", "0.66"]:
             estPostupdate = use_results["Budget"][
                 (use_results["Updated"] == "yes") &
@@ -280,7 +280,7 @@ if not plot_distn:
         plt.close()
         for (ind, condition, xlabel) in [
             (11, (results_table["Database"] == "SR15CCBOX71") & (results_table["normyear"] == normyear0), "Update MAGICC"),
-            (11, (results_table["Database"] == "AR6WG3"), "Use AR6 DB"),
+            (11, (results_table["Database"] == "AR6WG3") & (results_table["normyear"] == normyear0), "Use AR6 DB"),
             (10, ((results_table["Database"] == "AR6WG3") & (results_table["recem"] == recem0)) & (results_table["normyear"] == normyear0), "Recent emissions"),
             (9, (results_table["Database"] == "SR15CCBOX71") & (
                     results_table["FaIR"] == True) & (results_table["recem"] == recem0) & (results_table["normyear"] == normyear0), "Include FaIR"),
@@ -336,7 +336,7 @@ if not plot_distn:
         plt.ylim([0, ycent[0] + errorhigh[0] + 20])
         plt.tight_layout()
         plt.title(f"RCB for 50% chance of {round(futwarm + 1.07, 1)}$^o$C", y=1.0, pad=-14)
-        plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}_errorbars_outer.png")
+        plt.savefig(f"../Output/Plots/waterfall_changes_in_budget_{futwarm}C_p{quant_want}_errorbars_outer.pdf")
         plt.close()
 
     initialbug = results_table.iloc[
@@ -356,7 +356,7 @@ if not plot_distn:
     plt.xlabel("Peak warming (C)")
     plt.ylabel("Remaining budget (GtCO$_2$)")
     plt.legend(["AR6 WGI report", "Recommended estimate"], loc="upper left")
-    plt.savefig(f"../Output/Plots/compare_updated_and_orig_budget_over_temps.png")
+    plt.savefig(f"../Output/Plots/compare_updated_and_orig_budget_over_temps.pdf")
 
 
 if plot_distn:
@@ -399,7 +399,7 @@ if plot_distn:
             violinplot.text(xtick-0.1, medians[xtick * 2 + 1], str(int(medians[xtick * 2 + 1])),
                           horizontalalignment='center', size='small', color='w',
                           weight='semibold')
-        plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.png")
+        plt.savefig(results_folder + plot_folder + f"violinplot_TCREZECDistn_ftwarm{futwarm}.pdf")
 
 # Calculate the difference made by the change in non-CO2 quantiles:
 def normgev(x):
@@ -426,13 +426,14 @@ if plot_distn == "":
             resqant = pd.DataFrame(resqant, index=inds)
             # set up initial Generalised Extreme Value distn by assuming points are
             # uniformly sampled. We normalise the latter two values by 100.
-            vect0 = [0.6, 3 if temp==1.5 else 8, 4]
+            vect0 = [0.6 if temp==1.5 else 0.4, 1 if temp==1.5 else 2, 4]
             resgev = minimize(scorefuncGEV, x0=vect0, args=(resqant.loc["0.5"], quants_nonco2))
-            assert resgev.success
-            assert np.allclose(normgev(resgev.x).cdf(resqant.loc["0.5"]), quants_nonco2, atol=0.08)
+            assert resgev.success, f"Didn't find non-CO2 GEV solution for peak {peak} at temp {temp}, try different vect0"
+            assert np.allclose(normgev(resgev.x).cdf(resqant.loc["0.5"]), quants_nonco2, atol=0.08
+                               ), f"Found bad non-CO2 GEV solution for peak {peak} at temp {temp}, try different vect0"
             vect0 = [0.8, 2, 3]
             co2res = minimize(scorefuncGEV, x0=vect0, args=(resqant.loc[:, "50.0"], quants_co2))
-            assert co2res.success
+            assert co2res.success, f"Didn't find CO2 GEV solution for peak {peak} at temp {temp}, try different vect0"
             assert np.allclose(normgev(co2res.x).cdf(
                     resqant.loc[:, "50.0"]), quants_co2, atol=0.05)
             genNum = 1000000

@@ -9,8 +9,9 @@ from src.distributions_of_inputs import _read_and_clean_summary_csv, _clean_colu
 # Plots the distribution of total temperatures and non-CO2 temperatures over time
 
 # load temp trajectories
-fair_file_all = "../InputData/fair163_ar6/fair_processed_data_alltemp.csv"
-fair_file_non = "../InputData/fair163_ar6/fair_processed_data_nonco2temp.csv"
+normyears = False
+fair_file_all = f"../InputData/fair163_ar6/fair_processed_data_alltemp_normyears_{normyears}.csv"
+fair_file_non = f"../InputData/fair163_ar6/fair_processed_data_nonco2temp_normyears_{normyears}.csv"
 magicc_file_all = "../InputData/MAGICCAR6emWG3scen/job-20211019-ar6-nonco2_Raw-GSAT.csv"
 magicc_file_non = "../InputData/MAGICCAR6emWG3scen/job-20211019-ar6-nonco2_Raw-GSAT-Non-CO2.csv"
 
@@ -155,11 +156,11 @@ plt.ylim([0.2, 0.6])
 plot_folder = "../Output/Plots/"
 if not os.path.exists(plot_folder):
     os.makedirs(plot_folder)
-plt.savefig(plot_folder + "nonco2_co2_relation_over_time_magicc.png")
+plt.savefig(plot_folder + "nonco2_co2_relation_over_time_magicc.pdf")
 plt.close()
 
 # Repeat for fair
 plot_temps(fair_df_all, fair_df_non, future_dates, "FaIR")
 plt.xlim([1.11, 2.5])
 plt.ylim([0.15, 0.6])
-plt.savefig(plot_folder + "nonco2_co2_relation_over_time_fair.png")
+plt.savefig(plot_folder + "nonco2_co2_relation_over_time_fair.pdf")

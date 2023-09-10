@@ -7,7 +7,7 @@ import seaborn as sns
 # Plots the results of running the model-and-SSP specific budgets.
 
 # Database should be the foldername where files are stored, e.g. ar6wg3 or sr15ccbox71
-database = "sr15ccbox71"
+database = "ar6wg3"
 results_folder = f"../Output/{database}/"
 subfolders0 = ["each/SSP1/", "each/SSP2/", "each/SSP3/", "each/SSP4/", "each/SSP5/"]
 startstrings = []
@@ -89,23 +89,45 @@ to_plot = to_plot.loc[
     :
 ]
 plt.close()
+palette = "Set2"
 sns.catplot(
-    data=to_plot, x="Scenario", hue="Model", y="Budget", kind="box", aspect=1.2
+    data=to_plot, x="Scenario", hue="Model", y="Budget", kind="box", aspect=1.2,
+    palette=palette, legend=None
 )
+ax=sns.stripplot(
+    data=to_plot, x="Scenario", hue="Model", y="Budget", palette=palette,  dodge=True,
+)
+sns.set_context("paper", rc={"figure.figsize": (8, 16)})
+plt.xticks(rotation=45, horizontalalignment="right")
 plt.ylabel("Budget  (GtCO$_2$)")
-plt.savefig(plot_folder + "scenario_budgets_catplot.png")
+handles, labels = ax.get_legend_handles_labels()
+plt.legend(
+    handles[0:int(len(handles)/2)], labels[0:int(len(handles)/2)],
+    bbox_to_anchor=(1.01, 0.95), loc='upper left', borderaxespad=0,
+    fontsize=8
+)
+plt.tight_layout(rect=(0, 0, 1, 0.8))
+plt.savefig(plot_folder + "scenario_budgets_catplot.pdf")
 # Also plot this the other way around
 plt.close()
 sns.catplot(
-    data=to_plot, x="Model", hue="Scenario", y="Budget", kind="box", aspect=1.2,
+    data=to_plot, x="Model", hue="Scenario", y="Budget", kind="box", aspect=1.2, palette=palette,
     legend=False
+)
+ax=sns.stripplot(
+    data=to_plot, x="Model", hue="Scenario", y="Budget",  palette=palette, dodge=True
 )
 plt.ylabel("Budget  (GtCO$_2$)")
 plt.xticks(rotation=45, horizontalalignment="right")
+handles, labels = ax.get_legend_handles_labels()
 plt.tight_layout()
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
+plt.legend(
+    handles[0:int(len(handles)/2)], labels[0:int(len(handles)/2)],
+    bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0,
+    fontsize=8
+)
 plt.tight_layout()
-plt.savefig(plot_folder + "model_then_scenario_budgets_catplot.png")
+plt.savefig(plot_folder + "model_then_scenario_budgets_catplot.pdf")
 
 # Plot different peak/non-CO2 waring of scenario families on the same plot
 magicc_db = pd.read_csv(
@@ -133,10 +155,12 @@ master_all_non_co2["Model"] = magicc_db["model"]
 image_data = master_all_non_co2.loc[master_all_non_co2["Model"] == "IMAGE 3.0.1"]
 legends = []
 plt.close()
+colormap = {"SSP1": "red", "SSP2": "blue", "SSP3": "pink", "SSP4": "violet", "SSP5": "cyan"}
 for scenario in ["SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]:
     ind = [x[:len(scenario)] == scenario for x in image_data["Scenario"]]
     plt.plot(historic_warming + image_data[magicc_temp_col].iloc[ind],
-        image_data[magicc_non_co2_col].iloc[ind]
+        image_data[magicc_non_co2_col].iloc[ind],
+        c=colormap[scenario]
     )
     legends.append(scenario)
 image_lincoefs = np.polyfit(image_data[magicc_temp_col], image_data[magicc_non_co2_col], 1)
@@ -150,7 +174,7 @@ legends.append("Linear fit")
 plt.legend(legends)
 plt.xlabel("Peak total warming (C)")
 plt.ylabel("Non-CO$_2$ warming relative to 2010-2019 (C)")
-plt.savefig(plot_folder + "IMAGE_3.0.1_ssps.png")
+plt.savefig(plot_folder + "IMAGE_3.0.1_ssps.pdf")
 
 # Calculate the standard deviation and range of the distribution of values
 for futwarm, wantquant in [(0.43, "0.5"), (0.93, "0.66")]:
