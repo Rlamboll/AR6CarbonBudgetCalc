@@ -10,7 +10,9 @@ directly), the non-CO2 warming (calculated from scenarios analysed previously by
 or FaIR), the zero-emissions commitment (ZEC, input directly), the  transient climate 
 response to cumulative emissions of CO2 (TCRE, parameters are input for a distribution
 which may be either lognormal or normal)
-and unrepresented Earth feedbacks (a linear function of temperature change).   
+and unrepresented Earth feedbacks (a linear function of temperature change).
+
+The default values in version v1.0.3 replicate the data in the IGCC report for 2024.    
 
 By changing the default values this code can replicate the values in the 
 IPCC reports for AR6 WGI and WGIII.  

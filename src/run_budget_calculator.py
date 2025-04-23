@@ -21,12 +21,12 @@ n_loops = 10000000  # Default: 1000000
 # ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
 zec_mean = 0.0  # Default: 0.0
-zec_sd = 0.19   # Default 0.19
+zec_sd = 0.0   # Default 0.19
 # Should we interpret the distribution of ZEC in an asymmetric way, i.e. ignore when its
 # negative but include when positive?
 zec_asym = False  # Default: False
 # The temperature difference already seen. (Units: C)
-historical_dT = 1.07  # Default: 1.07
+historical_dT = 1.24  # Default: 1.07
 # Uncertainty in this value (Units: C). Only used if doing waterfall plot.
 historical_uncertainty = 0.2
 # The distribution of the TCRE function - either "normal", "posnormal", "lognormal mean
@@ -52,7 +52,7 @@ earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2  # 7.1 * convert_PgC_to
 earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC_to_GtCO2
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
-recent_emissions = 326  # Default: 326 (until end of 2022)
+recent_emissions = 204  # Default: 326 (until end of 2022)
 # The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
 # correlated. This is not used for most calculations, just for the waterfall plot.
 recent_emissions_uncertainty = 1.8 * 8
@@ -253,7 +253,7 @@ magicc_savename = "magicc_nonCO2_temp_{}Percentile".format(
 fair_savename = magicc_savename.replace("magicc", "fair")
 # Years over which we set the average temperature to 0.
 # Note that the upper limit of the range is not included in python.
-temp_offset_years = np.arange(2010, 2020, 1)
+temp_offset_years = np.arange(2015, 2025, 1)
 # Use permafrost may be True, False or both (iterates over the list)
 List_use_permafrost = [False]
 # Should we normalise FaIR and MAGICC temperature trends to 2010-2019 before calculating
