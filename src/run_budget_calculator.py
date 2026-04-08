@@ -21,12 +21,12 @@ n_loops = 10000000  # Default: 1000000
 # ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
 zec_mean = 0.0  # Default: 0.0
-zec_sd = 0.19   # Default 0.19
+zec_sd = 0.0   # Default 0.19
 # Should we interpret the distribution of ZEC in an asymmetric way, i.e. ignore when its
 # negative but include when positive?
 zec_asym = False  # Default: False
 # The temperature difference already seen. (Units: C)
-historical_dT = 1.07  # Default: 1.07
+historical_dT = 1.24  # Default: 1.07
 # Uncertainty in this value (Units: C). Only used if doing waterfall plot.
 historical_uncertainty = 0.2
 # The distribution of the TCRE function - either "normal", "posnormal", "lognormal mean
@@ -52,7 +52,7 @@ earth_feedback_co2_per_C_av = 7.1 * convert_PgC_to_GtCO2  # 7.1 * convert_PgC_to
 earth_feedback_co2_per_C_stdv = 26.7 * convert_PgC_to_GtCO2 # 26.7 * convert_PgC_to_GtCO2
 # Any emissions that have taken place too recently to have factored into the measured
 # temperature change, and therefore must be subtracted from the budget (Units: GtCO2)
-recent_emissions = 326  # Default: 326 (until end of 2022)
+recent_emissions = 213  # Default: 326 (until end of 2022)
 # The uncertainty in recent emissions is about 1.8 GtCO2/year. Here we assume errors are
 # correlated. This is not used for most calculations, just for the waterfall plot.
 recent_emissions_uncertainty = 1.8 * 8
@@ -60,7 +60,7 @@ recent_emissions_uncertainty = 1.8 * 8
 # go between easy reading and data for plots)
 allquant = False  # False
 quantiles_to_report = np.arange(0.01, 0.991, 0.0025) if allquant else np.array(
-    [0.1, 0.17, 0.33, 0.5, 0.66, 0.83, 0.9])
+    [0.5, 0.67, 0.83, 0.9])
 
 # Run version should be ar6wg3, sr15ccbox71, or sr15prewg1, corresponding to running the
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
@@ -229,7 +229,7 @@ tot_magicc_file_nopermafrost = tot_magicc_file_permafrost
 emissions_file = input_folder + f"job-{jobno}-nonco2_Emissions-CO2.csv"
 # The name of the non-CO2 warming column output from in the MAGICC model file analysis
 magicc_non_co2_col = (
-    "non-co2 warming (rel. to 2010-2019) at peak cumulative emissions co2"
+    "non-co2 warming (rel. to 2016-2025) at peak cumulative emissions co2"
 )
 # The name of the peak temperature column output
 magicc_temp_col = "peak surface temperature (rel. to 2010-2019)"
@@ -253,7 +253,7 @@ magicc_savename = "magicc_nonCO2_temp_{}Percentile".format(
 fair_savename = magicc_savename.replace("magicc", "fair")
 # Years over which we set the average temperature to 0.
 # Note that the upper limit of the range is not included in python.
-temp_offset_years = np.arange(2010, 2020, 1)
+temp_offset_years = np.arange(2016, 2026, 1)
 # Use permafrost may be True, False or both (iterates over the list)
 List_use_permafrost = [False]
 # Should we normalise FaIR and MAGICC temperature trends to 2010-2019 before calculating
