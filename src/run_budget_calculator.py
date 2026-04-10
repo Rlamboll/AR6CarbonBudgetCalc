@@ -21,7 +21,7 @@ n_loops = 10000000  # Default: 1000000
 # ZEC: the change in temperature that will occur after zero emissions has been reached.
 # (Units: C)
 zec_mean = 0.0  # Default: 0.0
-zec_sd = 0.0   # Default 0.19
+zec_sd = 0.0  # Default 0.19
 # Should we interpret the distribution of ZEC in an asymmetric way, i.e. ignore when its
 # negative but include when positive?
 zec_asym = False  # Default: False
@@ -60,7 +60,7 @@ recent_emissions_uncertainty = 1.8 * 8
 # go between easy reading and data for plots)
 allquant = False  # False
 quantiles_to_report = np.arange(0.01, 0.991, 0.0025) if allquant else np.array(
-    [0.5, 0.67, 0.83, 0.9])
+    [0.1, 0.17, 0.33, 0.5, 0.67, 0.83, 0.9])
 
 # Run version should be ar6wg3, sr15ccbox71, or sr15prewg1, corresponding to running the
 # code using the AR6 database as used for WG3, or the SR1.5 database with either the
@@ -558,6 +558,8 @@ for use_permafrost in List_use_permafrost:
                 budgets = budget_func.calculate_budget(
                     dT_target, zec, historical_dT, non_co2_dT, tcres, earth_feedback_co2
                 )
+                if np.isclose(dT_target, 1.5):
+                    print(f"Target non-CO2 warming at 1.5C is {non_co2_dT}")
                 budgets = budgets - recent_emissions
                 budget_quantiles.loc[dT_target] = np.quantile(
                     budgets, inverse_quantiles_to_report
