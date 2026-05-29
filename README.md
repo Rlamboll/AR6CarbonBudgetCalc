@@ -25,10 +25,10 @@ With `zec_sd = 0, recent_emissions=209, historical_dT = 1.07` this replicates th
 budget results in chapter 3 (Riahi et al, 2022) of the IPCC AR6 WG3 report.
 
 With `peak_version = "nonCO2AtPeakAverage", List_use_permafrost=[True], norm_nonco2_years=True, nonlinear_nonco2 = "QRW"`
-this replicates our recommended update.
+this replicates our recommended update in Lamboll et al. 2023.
 
-With `recent_emissions=204, historical_dT = 1.15 ` this replicates the results in 
-"Indicators of Global Climate Change 2022: annual update".
+With `recent_emissions=213, historical_dT = 1.24, temp_offset_years = np.arange(2016, 2026, 1)` this replicates the results in 
+"Indicators of Global Climate Change 2025: annual update".
 
 The code expects to find data from MAGICC and/or FaIR simulations in the `InputData` 
 folder in the format output for a pyam dataframe. Alternatively unprocessed FaIR data 

@@ -232,7 +232,7 @@ magicc_non_co2_col = (
     "non-co2 warming (rel. to 2016-2025) at peak cumulative emissions co2"
 )
 # The name of the peak temperature column output
-magicc_temp_col = "peak surface temperature (rel. to 2010-2019)"
+magicc_temp_col = "peak surface temperature (rel. to 2016-2025)"
 # The percentile to use for non-CO2 temperature change (for each scenario separately).
 # This is a string, and must be 50.0 the first time FaIR data is run.
 nonco2_percentile = "50.0"
