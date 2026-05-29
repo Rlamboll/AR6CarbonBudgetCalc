@@ -14,21 +14,9 @@ and unrepresented Earth feedbacks (a linear function of temperature change).
 
 By changing the default values this code can replicate the values in the 
 IPCC reports for AR6 WGI and WGIII.  
-With `runver = sr15prewg1, zec_sd = 0, recent_emissions=209, historical_dT = 1.07` this replicates Table 5.8 
-in Chapter 5 (Canadell et al, 2021), Table TS.3 in the Technical Summary (Arias et al, 
-2021) and Table SPM.2 of the Summary for Policymakers (IPCC, 2021) of the IPCC AR6 WGI 
-report. Note that values reported in the report are rounded to the nearest 10 PgC or 50 
-GtCO2 and the impact of ZEC standard deviation are tabulated separately. All the 
-reports use the MAGICC True, FaIR False scenario.  
 
-With `zec_sd = 0, recent_emissions=209, historical_dT = 1.07` this replicates the carbon 
-budget results in chapter 3 (Riahi et al, 2022) of the IPCC AR6 WG3 report.
-
-With `peak_version = "nonCO2AtPeakAverage", List_use_permafrost=[True], norm_nonco2_years=True, nonlinear_nonco2 = "QRW"`
-this replicates our recommended update in Lamboll et al. 2023.
-
-With `recent_emissions=213, historical_dT = 1.24, temp_offset_years = np.arange(2016, 2026, 1)` this replicates the results in 
-"Indicators of Global Climate Change 2025: annual update".
+With the default values, (`recent_emissions=204, historical_dT = 1.22, temp_offset_years = np.arange(2015, 2025, 1)`) this replicates the updated  
+results in "Indicators of Global Climate Change 2024: annual update".
 
 The code expects to find data from MAGICC and/or FaIR simulations in the `InputData` 
 folder in the format output for a pyam dataframe. Alternatively unprocessed FaIR data 
